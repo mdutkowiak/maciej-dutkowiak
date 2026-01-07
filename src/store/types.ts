@@ -39,6 +39,11 @@ export interface SitemapNode {
   slug: string;
   status: GenericStatus;
   children: SitemapNode[];
+
+  // Pro Enhancements
+  lastModified?: string; // ISO Date
+  templateId?: string;
+  locked?: boolean;
 }
 
 export interface Template {

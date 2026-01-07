@@ -18,9 +18,10 @@ import {
     useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { FileText, Folder, GripVertical, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
+import { FileText, Folder, GripVertical, Plus, Trash2, Eye, EyeOff, Lock, File } from 'lucide-react';
 import { useSiteStore } from '@/store/useSiteStore';
 import { SitemapNode } from '@/store/types';
+import Tooltip from '@/components/ui/Tooltip';
 
 // --- Sortable Item Component ---
 interface SortableItemProps {
@@ -38,67 +39,60 @@ function SortableItem({ node, depth }: SortableItemProps) {
         isDragging
     } = useSortable({ id: node.id });
 
-    const { activePageId, setActivePage, updatePageStatus, deletePage } = useSiteStore();
+    // Remove inline actions, as we now use the Top Bar
+    const { activePageId, setActivePage } = useSiteStore();
 
     const style = {
         transform: CSS.Transform.toString(transform),
         transition,
-        marginLeft: `${depth * 20}px`,
-        opacity: isDragging ? 0.5 : 1,
+        // Increased indentation for better tree visualization
+        paddingLeft: `${depth * 16 + 12}px`,
+        opacity: isDragging ? 0.4 : 1,
     };
 
     const isActive = activePageId === node.id;
+    const isFolder = node.children.length > 0;
 
     return (
-        <div style={style} className="mb-1 select-none">
+        <div className="relative">
             <div
                 ref={setNodeRef}
+                style={style}
+                {...attributes}
+                {...listeners}
+                onClick={() => setActivePage(node.id)}
                 className={`
-          group flex items-center justify-between p-2 rounded-lg text-sm border transition-all
-          ${isActive
-                        ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300'
-                        : 'bg-white border-transparent hover:bg-gray-50 dark:bg-zinc-900 dark:hover:bg-zinc-800 border-gray-100 dark:border-zinc-800 text-gray-700 dark:text-gray-300'
+                    flex items-center justify-between py-2 pr-4 cursor-pointer select-none group border-l-4 transition-colors duration-150
+                    ${isActive
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500'
+                        : 'border-transparent hover:bg-gray-50 dark:hover:bg-zinc-800'
                     }
-        `}
+                `}
             >
-                <div className="flex items-center gap-2 flex-1 overflow-hidden" onClick={() => setActivePage(node.id)}>
-                    <div {...attributes} {...listeners} className="cursor-grab text-gray-400 hover:text-gray-600 dark:text-zinc-600 dark:hover:text-zinc-400">
-                        <GripVertical size={14} />
-                    </div>
-                    {node.children.length > 0 ? <Folder size={16} className="shrink-0" /> : <FileText size={16} className="shrink-0" />}
-                    <span className="truncate font-medium">{node.title}</span>
-                </div>
+                <div className="flex items-center gap-2 overflow-hidden">
+                    {/* Status Dot with Tooltip */}
+                    <Tooltip content={`Modified: ${node.lastModified ? new Date(node.lastModified).toLocaleDateString() : 'Unknown'}`}>
+                        <div
+                            className={`w-2 h-2 rounded-full shrink-0 ${node.status === 'published' ? 'bg-green-500' : 'bg-gray-300 dark:bg-zinc-600'}`}
+                        />
+                    </Tooltip>
 
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            updatePageStatus(node.id, node.status === 'published' ? 'draft' : 'published');
-                        }}
-                        className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-zinc-700 ${node.status === 'published' ? 'text-green-600' : 'text-gray-400'}`}
-                        title={node.status === 'published' ? 'Unpublish' : 'Publish'}
-                    >
-                        {node.status === 'published' ? <Eye size={14} /> : <EyeOff size={14} />}
-                    </button>
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm('Are you sure you want to delete this page?')) deletePage(node.id);
-                        }}
-                        className="p-1 rounded hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 text-gray-400 transition-colors"
-                        title="Delete Page"
-                    >
-                        <Trash2 size={14} />
-                    </button>
+                    {/* Icon based on type/state */}
+                    {node.locked ? (
+                        <Lock size={14} className="text-amber-500 shrink-0" />
+                    ) : (
+                        isFolder ? <Folder size={14} className="text-gray-400 shrink-0" /> : <File size={14} className="text-gray-400 shrink-0" />
+                    )}
+
+                    <span className={`text-sm truncate ${isActive ? 'font-medium text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+                        {node.title}
+                    </span>
                 </div>
             </div>
 
-            {/* Recursive rendering for children could go here, but for simple list sortable it's complex. 
-          For MVP we will flatten or handle only 1 level, OR use a different recursive strategy.
-          Here we assume a flat list for the drag context for simplicity in this MVP 
-          but render children visually. */}
+            {/* Recursive Children - Simplified for MVP (only 1 level deep visualization in this loop) */}
             {node.children.length > 0 && (
-                <div className="mt-1">
+                <div className="border-l border-gray-100 dark:border-zinc-800 ml-4">
                     {node.children.map(child => (
                         <SortableItem key={child.id} node={child} depth={depth + 1} />
                     ))}
@@ -109,8 +103,16 @@ function SortableItem({ node, depth }: SortableItemProps) {
 }
 
 // --- Main Tree Component ---
+// ... imports
+import { Search } from 'lucide-react';
+import { useState, useMemo } from 'react';
+
+// ... SortableItem (no change)
+
+// --- Main Tree Component ---
 export default function SitemapTree() {
-    const { sitemap, setSitemap, addPage } = useSiteStore();
+    const { sitemap, setSitemap } = useSiteStore();
+    const [searchQuery, setSearchQuery] = useState('');
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -119,58 +121,82 @@ export default function SitemapTree() {
         })
     );
 
-    // Note: True nested drag and drop is complex. 
-    // For this MVP, we are enabling sorting only at the top level to demonstrate the tech stack.
-    // Deep nesting reordering would require a more complex recursive SortableContext.
-
     function handleDragEnd(event: DragEndEvent) {
-        const { active, over } = event;
+        // Drag logic disabled when searching
+        if (searchQuery) return;
 
+        const { active, over } = event;
         if (active.id !== over?.id) {
-            // Find indices in the root array
             const oldIndex = sitemap.findIndex((i) => i.id === active.id);
             const newIndex = sitemap.findIndex((i) => i.id === over?.id);
-
             if (oldIndex !== -1 && newIndex !== -1) {
                 setSitemap(arrayMove(sitemap, oldIndex, newIndex));
             }
         }
     }
 
+    // Filter Logic
+    const filteredSitemap = useMemo(() => {
+        if (!searchQuery) return sitemap;
+
+        const filterRecursive = (nodes: SitemapNode[]): SitemapNode[] => {
+            return nodes.reduce((acc, node) => {
+                const matches = node.title.toLowerCase().includes(searchQuery.toLowerCase());
+                const children = filterRecursive(node.children);
+
+                if (matches || children.length > 0) {
+                    // Include if matches or has matching children
+                    acc.push({ ...node, children });
+                }
+                return acc;
+            }, [] as SitemapNode[]);
+        };
+
+        return filterRecursive(sitemap);
+    }, [sitemap, searchQuery]);
+
     return (
-        <div className="flex flex-col h-full bg-gray-50 dark:bg-zinc-950 border-r border-gray-200 dark:border-zinc-800 w-80">
-            <div className="p-4 border-b border-gray-200 dark:border-zinc-800 flex justify-between items-center bg-white dark:bg-zinc-900">
-                <h2 className="font-semibold text-gray-900 dark:text-white">Sitemap</h2>
-                <button
-                    onClick={() => addPage(null, { title: 'New Page', slug: '/new' })}
-                    className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
-                    title="Add Page"
-                >
-                    <Plus size={16} />
-                </button>
+        <div className="flex flex-col h-full bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800">
+            {/* Search Bar */}
+            <div className="p-3 border-b border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900/50">
+                <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Search pages..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-white dark:bg-zinc-800 border-none rounded-md py-1.5 pl-9 pr-3 text-sm focus:ring-1 focus:ring-blue-500 placeholder-gray-400 dark:text-white"
+                    />
+                </div>
             </div>
 
-            <div className="flex-1 overflow-auto p-4">
+            <div className="flex-1 overflow-auto py-2">
                 <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
                     onDragEnd={handleDragEnd}
                 >
                     <SortableContext
-                        items={sitemap.map(n => n.id)}
+                        items={filteredSitemap.map(n => n.id)}
                         strategy={verticalListSortingStrategy}
                     >
-                        {sitemap.map((node) => (
+                        {filteredSitemap.map((node) => (
                             <SortableItem key={node.id} node={node} depth={0} />
                         ))}
                     </SortableContext>
                 </DndContext>
 
-                {sitemap.length === 0 && (
+                {filteredSitemap.length === 0 && (
                     <div className="text-center py-8 text-gray-400 text-sm">
-                        No pages yet. Click + to add one.
+                        {searchQuery ? 'No matching pages.' : 'No pages. Use top bar to create one.'}
                     </div>
                 )}
+            </div>
+
+            {/* Footer Info */}
+            <div className="p-3 text-[10px] text-gray-400 border-t border-gray-100 dark:border-zinc-800 text-center uppercase tracking-wider">
+                {sitemap.length} Pages • Pro Portfolio
             </div>
         </div>
     );

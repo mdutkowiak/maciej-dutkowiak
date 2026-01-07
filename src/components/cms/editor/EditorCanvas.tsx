@@ -13,9 +13,11 @@ import BlockRenderer from './BlockRenderer';
 interface SortableBlockProps {
     component: ComponentData;
     onRemove: () => void;
+    onSelect: () => void;
+    isSelected: boolean;
 }
 
-function SortableBlock({ component, onRemove }: SortableBlockProps) {
+function SortableBlock({ component, onRemove, onSelect, isSelected }: SortableBlockProps) {
     const {
         attributes,
         listeners,
@@ -32,13 +34,18 @@ function SortableBlock({ component, onRemove }: SortableBlockProps) {
     };
 
     return (
-        <div ref={setNodeRef} style={style} className="group relative mb-4">
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`group relative mb-4 transition-all duration-200 ${isSelected ? 'ring-2 ring-blue-500 rounded-lg' : ''}`}
+            onClick={(e) => { e.stopPropagation(); onSelect(); }}
+        >
             {/* Hover Actions */}
             <div className="absolute -top-3 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex gap-2">
                 <div {...attributes} {...listeners} className="bg-blue-600 text-white text-xs px-2 py-1 rounded cursor-grab active:cursor-grabbing shadow-md">
                     Drag
                 </div>
-                <button onClick={onRemove} className="bg-red-600 text-white p-1 rounded hover:bg-red-700 shadow-md">
+                <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="bg-red-600 text-white p-1 rounded hover:bg-red-700 shadow-md">
                     <Trash size={12} />
                 </button>
             </div>
@@ -51,7 +58,7 @@ function SortableBlock({ component, onRemove }: SortableBlockProps) {
 }
 
 export default function EditorCanvas() {
-    const { activePageId, pageComponents, removeComponent, pageCustomCode } = useSiteStore();
+    const { activePageId, pageComponents, removeComponent, pageCustomCode, selectedComponentId, setSelectedComponent } = useSiteStore();
     const { setNodeRef } = useDroppable({ id: 'editor-canvas' });
 
     const components = activePageId ? (pageComponents[activePageId] || []) : [];
@@ -76,7 +83,7 @@ export default function EditorCanvas() {
     }, [customCode.js, activePageId]);
 
     return (
-        <div className="min-h-full">
+        <div className="min-h-full" onClick={() => setSelectedComponent(null)}>
             {/* Custom CSS Injection */}
             <style dangerouslySetInnerHTML={{ __html: customCode.css }} />
 
@@ -91,6 +98,8 @@ export default function EditorCanvas() {
                             <SortableBlock
                                 key={comp.id}
                                 component={comp}
+                                isSelected={selectedComponentId === comp.id}
+                                onSelect={() => setSelectedComponent(comp.id)}
                                 onRemove={() => activePageId && removeComponent(activePageId, comp.id)}
                             />
                         ))}

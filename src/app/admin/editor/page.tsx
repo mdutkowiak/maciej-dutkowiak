@@ -8,12 +8,13 @@ import DevicePreviewWrapper from '@/components/cms/DevicePreviewWrapper';
 import ComponentToolkit from '@/components/cms/editor/ComponentToolkit';
 import EditorCanvas from '@/components/cms/editor/EditorCanvas';
 import CodeEditorPanel from '@/components/cms/editor/CodeEditorPanel';
+import PropertiesPanel from '@/components/cms/editor/PropertiesPanel';
 
 import { useSiteStore } from '@/store/useSiteStore';
 import { ComponentData } from '@/store/types';
 
 export default function VisualEditorPage() {
-    const { activePageId, addComponent, reorderComponents, pageComponents } = useSiteStore();
+    const { activePageId, addComponent, reorderComponents, pageComponents, selectedComponentId } = useSiteStore();
     const [activeDragItem, setActiveDragItem] = useState<ComponentData | null>(null);
     const [showCodePanel, setShowCodePanel] = useState(false);
 
@@ -96,8 +97,8 @@ export default function VisualEditorPage() {
                     )}
                 </div>
 
-                {/* Right: Toolkit */}
-                <ComponentToolkit />
+                {/* Right: Toolkit or Properties */}
+                {selectedComponentId ? <PropertiesPanel /> : <ComponentToolkit />}
 
                 {/* Drag Overlay (Visual feedback while dragging) */}
                 <DragOverlay>

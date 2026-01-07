@@ -4,23 +4,16 @@ import React from 'react';
 import { Plus, Trash2, Lock, Unlock, Edit, Move, MoreHorizontal } from 'lucide-react';
 import { useSiteStore } from '@/store/useSiteStore';
 import { useState } from 'react';
-import TemplateSelector from './TemplateSelector';
+import PageWizard from './PageWizard';
 
 export default function SitemapActionBar() {
     const { activePageId, addPage, deletePage, togglePageLock, sitemap } = useSiteStore();
-    const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+    const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [targetParentId, setTargetParentId] = useState<string | null>(null);
 
     const handleCreateClick = (parentId: string | null) => {
         setTargetParentId(parentId);
-        setIsTemplateModalOpen(true);
-    };
-
-    const handleTemplateSelect = (templateId: string) => {
-        // 1. Create Page
-        const newPageTitle = `New Page (${templateId})`; // Simplified naming logic
-        addPage(targetParentId, { title: newPageTitle, templateId });
-        setIsTemplateModalOpen(false);
+        setIsWizardOpen(true);
     };
 
     // Helper to find node by ID to check its state (e.g. is it locked?)
@@ -50,10 +43,10 @@ export default function SitemapActionBar() {
                         <span>Create Page</span>
                     </button>
                 </div>
-                <TemplateSelector
-                    isOpen={isTemplateModalOpen}
-                    onClose={() => setIsTemplateModalOpen(false)}
-                    onSelect={handleTemplateSelect}
+                <PageWizard
+                    isOpen={isWizardOpen}
+                    onClose={() => setIsWizardOpen(false)}
+                    parentId={targetParentId}
                 />
             </>
         );
@@ -101,10 +94,10 @@ export default function SitemapActionBar() {
                 </button>
             </div>
 
-            <TemplateSelector
-                isOpen={isTemplateModalOpen}
-                onClose={() => setIsTemplateModalOpen(false)}
-                onSelect={handleTemplateSelect}
+            <PageWizard
+                isOpen={isWizardOpen}
+                onClose={() => setIsWizardOpen(false)}
+                parentId={targetParentId}
             />
         </div>
     );

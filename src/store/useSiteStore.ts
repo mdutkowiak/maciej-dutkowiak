@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { SitemapNode, ComponentData, GenericStatus, Template } from './types';
+import { SitemapNode, ComponentData, GenericStatus, Template, SiteSettings } from './types';
 import { arrayMove } from '@dnd-kit/sortable';
 import { supabase } from '@/lib/supabase';
 
@@ -45,6 +45,11 @@ interface SiteStore {
     templates: Template[];
     saveTemplate: (name: string, pageId: string) => void;
     deleteTemplate: (id: string) => void;
+
+    // Site Settings
+    siteSettings: SiteSettings | null;
+    fetchSiteSettings: () => Promise<void>;
+    updateSiteSettings: (settings: Partial<SiteSettings>) => Promise<void>;
 }
 
 const INITIAL_TEMPLATES: Template[] = [
@@ -79,10 +84,12 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
     pageCustomCode: {},
     selectedComponentId: null,
     templates: INITIAL_TEMPLATES,
+    siteSettings: null,
 
     initializeSite: async () => {
         set({ isLoading: true, errorMessage: null });
         try {
+            await get().fetchSiteSettings();
             const { data, error } = await supabase.from('sitemap').select('*').order('title');
             if (error) throw error;
 
@@ -114,6 +121,34 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             set({ errorMessage: msg });
         } finally {
             set({ isLoading: false });
+        }
+    },
+
+    fetchSiteSettings: async () => {
+        try {
+            const { data, error } = await supabase.from('site_settings').select('*').eq('id', 'global').single();
+            if (data) {
+                set({ siteSettings: data as SiteSettings });
+            } else if (error && error.code === 'PGRST116') {
+                // Table doesn't exist or is empty - handle gracefully
+                console.warn('Site settings not found in DB');
+            }
+        } catch (e) {
+            console.error('Error fetching site settings:', e);
+        }
+    },
+
+    updateSiteSettings: async (settings) => {
+        const current = get().siteSettings;
+        if (!current) return;
+
+        const updated = { ...current, ...settings };
+        set({ siteSettings: updated });
+
+        try {
+            await supabase.from('site_settings').upsert({ id: 'global', ...updated });
+        } catch (e) {
+            console.error('Error updating site settings:', e);
         }
     },
 

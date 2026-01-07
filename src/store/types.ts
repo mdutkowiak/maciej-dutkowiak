@@ -68,3 +68,35 @@ export interface SEOPageReport {
   missingTags: string[]; // e.g., ['h1', 'alt', 'meta-description']
   brokenLinks: number;
 }
+
+export interface MenuItem {
+  id: string;
+  label: string;
+  href: string;
+  children?: MenuItem[];
+}
+
+export interface FooterSection {
+  id: string;
+  title: string;
+  links: { id: string; label: string; href: string }[];
+}
+
+export interface SiteSettings {
+  header: {
+    logoUrl: string;
+    showSearch: boolean;
+    menuItems: MenuItem[];
+    bgColor: string;
+    textColor: string;
+    accentColor: string;
+  };
+  footer: {
+    sections: FooterSection[];
+    copyright: string;
+    socialLinks: { platform: string; url: string }[];
+    bgColor: string;
+    textColor: string;
+  };
+}
+

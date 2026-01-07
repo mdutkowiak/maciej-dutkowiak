@@ -10,6 +10,7 @@ interface CustomCode {
 
 interface SiteStore {
     isLoading: boolean;
+    errorMessage: string | null;
     sitemap: SitemapNode[];
     activePageId: string | null;
 
@@ -71,6 +72,7 @@ const buildTree = (items: any[], parentId: string | null = null): SitemapNode[] 
 
 export const useSiteStore = create<SiteStore>((set, get) => ({
     isLoading: false,
+    errorMessage: null, // New state for error handling
     sitemap: [],
     activePageId: null, // Start null, will set to 'home' or first page after load
     pageComponents: {},
@@ -79,7 +81,7 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
     templates: INITIAL_TEMPLATES,
 
     initializeSite: async () => {
-        set({ isLoading: true });
+        set({ isLoading: true, errorMessage: null });
         try {
             const { data, error } = await supabase.from('sitemap').select('*').order('title');
             if (error) throw error;
@@ -100,8 +102,16 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
                     get().setActivePage(tree[0].id);
                 }
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error('Failed to init site:', e);
+            // Display friendly error for common issues
+            let msg = 'Failed to load sitemap.';
+            if (e?.message?.includes('relation "sitemap" does not exist')) {
+                msg = 'Database tables not found. Please run the SQL migration.';
+            } else if (e?.message) {
+                msg = `Error: ${e.message}`;
+            }
+            set({ errorMessage: msg });
         } finally {
             set({ isLoading: false });
         }

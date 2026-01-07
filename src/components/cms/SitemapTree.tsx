@@ -111,7 +111,7 @@ import { useState, useMemo } from 'react';
 
 // --- Main Tree Component ---
 export default function SitemapTree() {
-    const { sitemap, setSitemap } = useSiteStore();
+    const { sitemap, setSitemap, errorMessage } = useSiteStore();
     const [searchQuery, setSearchQuery] = useState('');
 
     const sensors = useSensors(
@@ -188,8 +188,15 @@ export default function SitemapTree() {
                 </DndContext>
 
                 {filteredSitemap.length === 0 && (
-                    <div className="text-center py-8 text-gray-400 text-sm">
-                        {searchQuery ? 'No matching pages.' : 'No pages. Use top bar to create one.'}
+                    <div className="text-center py-8 text-gray-400 text-sm px-4">
+                        {errorMessage ? (
+                            <div className="text-red-500 bg-red-50 dark:bg-red-900/10 p-2 rounded">
+                                <p className="font-bold mb-1 text-xs">Connection Error</p>
+                                <p className="text-xs">{errorMessage}</p>
+                            </div>
+                        ) : (
+                            searchQuery ? 'No matching pages.' : 'No pages. Use top bar to create one.'
+                        )}
                     </div>
                 )}
             </div>

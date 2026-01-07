@@ -1,20 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Upload, X, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Upload, X, Check, Loader2, Trash2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface MediaItem {
-    id: string;
+    id: string; // File name as ID
     url: string;
     name: string;
+    size?: number;
+    type?: string;
 }
-
-const MOCK_MEDIA: MediaItem[] = [
-    { id: '1', url: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&q=80', name: 'Gradient Flow' },
-    { id: '2', url: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800&q=80', name: 'Dark Mesh' },
-    { id: '3', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&q=80', name: 'Abstract Blue' },
-    { id: '4', url: 'https://images.unsplash.com/photo-1481487484168-9b930d5b7d93?w=800&q=80', name: 'Minimal Architecture' },
-];
 
 interface MediaManagerProps {
     onSelect?: (url: string) => void;
@@ -22,17 +18,63 @@ interface MediaManagerProps {
 }
 
 export default function MediaManager({ onSelect, onClose }: MediaManagerProps) {
-    const [media, setMedia] = useState<MediaItem[]>(MOCK_MEDIA);
+    const [media, setMedia] = useState<MediaItem[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isUploading, setIsUploading] = useState(false);
 
-    const handleUpload = () => {
-        // Simulate upload
-        const newItem: MediaItem = {
-            id: Math.random().toString(36).substr(2, 9),
-            url: `https://source.unsplash.com/random/800x600?sig=${Math.random()}`,
-            name: `Uploaded Image ${media.length + 1}`
-        };
-        setMedia([newItem, ...media]);
+    useEffect(() => {
+        fetchMedia();
+    }, []);
+
+    const fetchMedia = async () => {
+        setIsLoading(true);
+        const { data, error } = await supabase.storage.from('media').list();
+        if (data) {
+            const items = data.map(file => {
+                // Get public URL
+                const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(file.name);
+                return {
+                    id: file.name,
+                    name: file.name,
+                    url: publicUrl,
+                    size: file.metadata?.size,
+                    type: file.metadata?.mimetype
+                };
+            });
+            setMedia(items);
+        } else {
+            console.error('Error loading media:', error);
+        }
+        setIsLoading(false);
+    };
+
+    const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
+            const { error } = await supabase.storage.from('media').upload(fileName, file);
+
+            if (error) throw error;
+            await fetchMedia(); // Refresh list
+        } catch (e) {
+            console.error('Upload failed:', e);
+            alert('Upload failed. Ensure you created a "media" bucket in Supabase Storage and set it to Public.');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleDelete = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (!confirm('Are you sure you want to delete this file?')) return;
+
+        await supabase.storage.from('media').remove([id]);
+        setMedia(media.filter(m => m.id !== id));
+        if (selectedId === id) setSelectedId(null);
     };
 
     const handleConfirm = () => {
@@ -44,7 +86,7 @@ export default function MediaManager({ onSelect, onClose }: MediaManagerProps) {
     };
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-8">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 md:p-8">
             <div className="bg-white dark:bg-zinc-900 w-full max-w-4xl h-[80vh] rounded-xl shadow-2xl flex flex-col border border-gray-200 dark:border-zinc-800">
 
                 {/* Header */}
@@ -57,39 +99,64 @@ export default function MediaManager({ onSelect, onClose }: MediaManagerProps) {
 
                 {/* content */}
                 <div className="flex-1 overflow-y-auto p-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {/* Upload Button */}
-                        <div
-                            onClick={handleUpload}
-                            className="aspect-[4/3] border-2 border-dashed border-gray-300 dark:border-zinc-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group"
-                        >
-                            <div className="p-3 bg-gray-100 dark:bg-zinc-800 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">
-                                <Upload size={24} className="text-gray-500 group-hover:text-blue-500" />
-                            </div>
-                            <span className="mt-2 text-sm text-gray-500 group-hover:text-blue-500 font-medium">Upload New</span>
+                    {isLoading ? (
+                        <div className="flex h-full items-center justify-center">
+                            <Loader2 className="animate-spin text-blue-500" size={32} />
                         </div>
-
-                        {/* Items */}
-                        {media.map(item => (
-                            <div
-                                key={item.id}
-                                onClick={() => setSelectedId(item.id)}
-                                className={`relative aspect-[4/3] group cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selectedId === item.id ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-transparent'}`}
-                            >
-                                <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-
-                                {selectedId === item.id && (
-                                    <div className="absolute top-2 right-2 bg-blue-500 text-white p-1 rounded-full shadow-lg">
-                                        <Check size={12} />
-                                    </div>
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {/* Upload Button */}
+                            <label className="aspect-[4/3] border-2 border-dashed border-gray-300 dark:border-zinc-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group relative">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handleUpload}
+                                    disabled={isUploading}
+                                />
+                                {isUploading ? (
+                                    <Loader2 className="animate-spin text-blue-500" />
+                                ) : (
+                                    <>
+                                        <div className="p-3 bg-gray-100 dark:bg-zinc-800 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">
+                                            <Upload size={24} className="text-gray-500 group-hover:text-blue-500" />
+                                        </div>
+                                        <span className="mt-2 text-sm text-gray-500 group-hover:text-blue-500 font-medium">Upload New</span>
+                                    </>
                                 )}
-                                <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {item.name}
+                            </label>
+
+                            {/* Items */}
+                            {media.map(item => (
+                                <div
+                                    key={item.id}
+                                    onClick={() => setSelectedId(item.id)}
+                                    className={`relative aspect-[4/3] group cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selectedId === item.id ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-transparent'}`}
+                                >
+                                    <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+
+                                    {selectedId === item.id && (
+                                        <div className="absolute top-2 right-2 bg-blue-500 text-white p-1 rounded-full shadow-lg z-10">
+                                            <Check size={12} />
+                                        </div>
+                                    )}
+
+                                    <button
+                                        onClick={(e) => handleDelete(e, item.id)}
+                                        className="absolute bottom-2 right-2 p-1.5 bg-red-100 text-red-600 rounded-md opacity-0 group-hover:opacity-100 hover:bg-red-200 transition-all z-20"
+                                        title="Delete"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+
+                                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity truncate">
+                                        {item.name}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}

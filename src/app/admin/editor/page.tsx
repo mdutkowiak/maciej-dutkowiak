@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { DndContext, DragOverlay, DragStartEvent, DragEndEvent, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
-import { Code } from 'lucide-react';
+import { Code, Eye, Save, Globe } from 'lucide-react';
 
 import DevicePreviewWrapper from '@/components/cms/DevicePreviewWrapper';
 import ComponentToolkit from '@/components/cms/editor/ComponentToolkit';
@@ -14,11 +14,41 @@ import { useSiteStore } from '@/store/useSiteStore';
 import { ComponentData } from '@/store/types';
 
 export default function VisualEditorPage() {
-    const { activePageId, addComponent, reorderComponents, pageComponents, selectedComponentId } = useSiteStore();
+    const { activePageId, addComponent, reorderComponents, pageComponents, selectedComponentId, updatePageStatus, sitemap } = useSiteStore();
     const [activeDragItem, setActiveDragItem] = useState<ComponentData | null>(null);
     const [showCodePanel, setShowCodePanel] = useState(false);
 
+    // Find active node slug for preview
+    const findNode = (nodes: any[], id: string): any => {
+        for (const node of nodes) {
+            if (node.id === id) return node;
+            if (node.children?.length) {
+                const found = findNode(node.children, id);
+                if (found) return found;
+            }
+        }
+        return null;
+    };
+    const activeNode = activePageId ? findNode(sitemap, activePageId) : null;
+
+
     const sensors = useSensors(useSensor(PointerSensor));
+
+    const handlePublish = () => {
+        if (activePageId) {
+            updatePageStatus(activePageId, 'published');
+            alert('Page Published! (Status updated to published)');
+        }
+    };
+
+    const handlePreview = () => {
+        if (activeNode?.slug) {
+            // Check if slug is just "/" or starts with "/"
+            const url = activeNode.slug === '/' ? '/' : activeNode.slug;
+            // In a real scenario we'd have a specific preview route maybe
+            window.open(url, '_blank');
+        }
+    };
 
     const handleDragStart = (event: DragStartEvent) => {
         const { active } = event;
@@ -79,6 +109,25 @@ export default function VisualEditorPage() {
                     <DevicePreviewWrapper>
                         <EditorCanvas />
                     </DevicePreviewWrapper>
+
+                    {/* Toolbar */}
+                    <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
+                        <button
+                            onClick={handlePreview}
+                            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-200 rounded-lg shadow-sm border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
+                        >
+                            <Eye size={16} />
+                            <span className="text-sm font-medium">Preview</span>
+                        </button>
+
+                        <button
+                            onClick={handlePublish}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition-colors"
+                        >
+                            <Globe size={16} />
+                            <span className="text-sm font-medium">Publish</span>
+                        </button>
+                    </div>
 
                     {/* Floating Action Buttons */}
                     <div className="absolute bottom-6 right-6 z-40">

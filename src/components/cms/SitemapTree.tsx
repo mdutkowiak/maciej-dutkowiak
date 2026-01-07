@@ -196,7 +196,7 @@ export default function SitemapTree() {
 
             {/* Footer Info */}
             <div className="p-3 text-[10px] text-gray-400 border-t border-gray-100 dark:border-zinc-800 text-center uppercase tracking-wider">
-                {sitemap.length} Pages • Pro Portfolio
+                {sitemap.length} Pages • LaQ CMS • made by Maciej Dutkowiak
             </div>
         </div>
     );

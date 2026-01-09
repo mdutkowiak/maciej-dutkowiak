@@ -22,6 +22,7 @@ interface SiteStore {
     // Initialization
     initializeSite: () => Promise<void>;
     loadPageContent: (pageId: string) => Promise<void>;
+    getNodeById: (id: string) => SitemapNode | null;
 
     // Actions
     setSitemap: (nodes: SitemapNode[]) => void;
@@ -61,6 +62,7 @@ interface SiteStore {
     pastePage: (parentId: string | null) => Promise<void>;
     movePage: (id: string, newParentId: string | null) => Promise<void>;
     updatePageProperties: (id: string, properties: { title?: string; slug?: string; seoTitle?: string; seoDesc?: string }) => Promise<{ success: boolean; error?: string }>;
+    updatePageData: (id: string, data: Record<string, any>) => Promise<void>;
 
     // Dashboard Stats
     dashboardStats: {
@@ -80,7 +82,24 @@ const INITIAL_TEMPLATES: Template[] = [
     { id: 'blank', name: 'Blank Page', areas: ['main'], thumbnail: '📄' },
     { id: 'home', name: 'Home Layout', areas: ['hero', 'features', 'cta'], thumbnail: '🏠' },
     { id: 'landing', name: 'Landing Page', areas: ['header', 'main', 'footer'], thumbnail: '🚀' },
-    { id: 'blog', name: 'Blog Post', areas: ['header', 'main', 'sidebar', 'footer'], thumbnail: '📝' },
+    {
+        id: 'blog',
+        name: 'Blog Post',
+        areas: ['header', 'main', 'sidebar', 'footer'],
+        thumbnail: '📝',
+        fields: [
+            { id: 'author', label: 'Author Name', type: 'text', required: true },
+            { id: 'publishDate', label: 'Publish Date', type: 'date' },
+            { id: 'featured', label: 'Featured Post', type: 'boolean', defaultValue: false },
+            {
+                id: 'category', label: 'Category', type: 'select', options: [
+                    { label: 'News', value: 'news' },
+                    { label: 'Tutorial', value: 'tutorial' },
+                    { label: 'Product', value: 'product' }
+                ]
+            }
+        ]
+    },
 ];
 
 // Helper to reconstruct tree from flat array
@@ -96,6 +115,7 @@ const buildTree = (items: any[], parentId: string | null = null): SitemapNode[] 
             isDeleted: item.is_deleted,
             lastModified: item.last_modified,
             templateId: item.template_id,
+            pageData: item.page_data || {},
             children: buildTree(items, item.id)
         }));
 };
@@ -131,16 +151,10 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
 
             if (data) {
                 const tree = buildTree(data);
-                // Ensure there is at least a home page if DB is empty (First Run)
-                if (tree.length === 0) {
-                    // Optionally bootstrap DB here
-                }
                 set({ sitemap: tree });
-                // We no longer set activePageId by default
             }
         } catch (e: any) {
             console.error('Failed to init site:', e);
-            // Display friendly error for common issues
             let msg = 'Failed to load sitemap.';
             if (e?.message?.includes('relation "sitemap" does not exist')) {
                 msg = 'Database tables not found. Please run the SQL migration.';
@@ -153,13 +167,26 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
         }
     },
 
+    getNodeById: (id: string) => {
+        const find = (nodes: SitemapNode[]): SitemapNode | null => {
+            for (const node of nodes) {
+                if (node.id === id) return node;
+                if (node.children && node.children.length > 0) {
+                    const found = find(node.children);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        return find(get().sitemap);
+    },
+
     fetchSiteSettings: async () => {
         try {
             const { data, error } = await supabase.from('site_settings').select('*').eq('id', 'global').single();
             if (data) {
                 set({ siteSettings: data as SiteSettings });
             } else if (error && error.code === 'PGRST116') {
-                // Table doesn't exist or is empty - handle gracefully
                 console.warn('Site settings not found in DB');
             }
         } catch (e) {
@@ -300,11 +327,9 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
 
     updatePageProperties: async (id, props) => {
         try {
-            // Fetch current state first to check slug change
             const { data: current } = await supabase.from('sitemap').select('slug, seo_metadata').eq('id', id).single();
             const oldSlug = current?.slug;
 
-            // If slug is changing, check uniqueness
             if (props.slug && props.slug !== oldSlug) {
                 const { data: existing } = await supabase
                     .from('sitemap')
@@ -317,7 +342,6 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
                     return { success: false, error: 'Slug already exists' };
                 }
 
-                // Create redirect
                 await supabase.from('redirects').upsert({
                     old_path: oldSlug,
                     new_path: props.slug
@@ -339,7 +363,6 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
 
             const { error } = await supabase.from('sitemap').update(updateData).eq('id', id);
             if (error) throw error;
-
             await get().initializeSite();
             return { success: true };
         } catch (e: any) {
@@ -348,65 +371,36 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
         }
     },
 
-    loadPageContent: async (pageId) => {
-        // Check if already loaded? (Optional caching strategy)
-        // if (get().pageComponents[pageId]) return; 
-
+    updatePageData: async (id, data) => {
         try {
-            const { data, error } = await supabase
-                .from('page_content')
-                .select('components, custom_code')
-                .eq('page_id', pageId)
-                .single();
+            const { data: current } = await supabase.from('sitemap').select('page_data').eq('id', id).single();
+            const newData = { ...(current?.page_data || {}), ...data };
 
-            if (data) {
-                set(state => ({
-                    pageComponents: { ...state.pageComponents, [pageId]: data.components || [] },
-                    pageCustomCode: { ...state.pageCustomCode, [pageId]: data.custom_code || { css: '', js: '' } }
-                }));
-            } else if (!error && !data) {
-                // No content record yet, init empty
-                set(state => ({
-                    pageComponents: { ...state.pageComponents, [pageId]: [] }
-                }));
-            }
-        } catch (e) {
-            console.error('Error loading page content:', e);
-        }
-    },
+            await supabase.from('sitemap').update({
+                page_data: newData,
+                last_modified: new Date().toISOString()
+            }).eq('id', id);
 
-    setActivePage: (id) => {
-        set({ activePageId: id, selectedComponentId: null });
-        get().loadPageContent(id);
-    },
-
-    setSitemap: (nodes) => set({ sitemap: nodes }), // Optimistic or Reorder update
-
-    // --- Async Actions ---
-
-    addPage: async (parentId, page) => {
-        const newPage = {
-            title: page.title || 'New Page',
-            slug: page.slug || `/new-page-${Date.now()}`,
-            parent_id: parentId,
-            status: 'draft',
-            template_id: page.templateId,
-            seo_metadata: {}
-        };
-
-        const { data, error } = await supabase.from('sitemap').insert(newPage).select().single();
-
-        if (data) {
             await get().initializeSite();
-            // Automatically select the new page
-            get().setActivePage(data.id);
-            // Create empty content record
-            await supabase.from('page_content').insert({ page_id: data.id, components: [] });
+        } catch (e) {
+            console.error('Error updating page data:', e);
         }
     },
+
+    loadPageContent: async (pageId) => {
+        const { data, error } = await supabase.from('page_content').select('*').eq('page_id', pageId).single();
+        if (!error && data) {
+            set((state) => ({
+                pageComponents: { ...state.pageComponents, [pageId]: data.components || [] },
+                pageCustomCode: { ...state.pageCustomCode, [pageId]: data.custom_code || { css: '', js: '' } }
+            }));
+        }
+    },
+
+    setSitemap: (nodes) => set({ sitemap: nodes }),
+    setActivePage: (id) => set({ activePageId: id }),
 
     deletePage: async (id) => {
-        // Helper to find node in tree
         const findNode = (nodes: SitemapNode[]): SitemapNode | null => {
             for (const n of nodes) {
                 if (n.id === id) return n;
@@ -425,10 +419,8 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
         }
 
         if (node?.isDeleted) {
-            // Permanent delete
             await supabase.from('sitemap').delete().eq('id', id);
         } else {
-            // Soft delete
             await supabase.from('sitemap').update({ is_deleted: true }).eq('id', id);
         }
 
@@ -455,7 +447,7 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
                         totalPages: total,
                         publishedPages: published,
                         draftPages: drafts,
-                        totalViews: (total * 123).toLocaleString(), // Mock views factor
+                        totalViews: (total * 123).toLocaleString(),
                     }
                 });
             }
@@ -466,7 +458,6 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
 
     updatePageStatus: async (id, status) => {
         await supabase.from('sitemap').update({ status }).eq('id', id);
-        // Optimistic update
         set((state) => {
             const updateRecursive = (nodes: SitemapNode[]): SitemapNode[] => {
                 return nodes.map(node => {
@@ -480,14 +471,10 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
     },
 
     togglePageLock: async (id) => {
-        // Need to find current value to toggle... or just fetch fresh
-        // For now, let's just assume we want to toggle the local state and sync
-        // Finding the node in local state is easier
-        // Simplification for MVP:
         const { data } = await supabase.from('sitemap').select('locked').eq('id', id).single();
         if (data) {
             await supabase.from('sitemap').update({ locked: !data.locked }).eq('id', id);
-            await get().initializeSite(); // Refresh to be safe
+            await get().initializeSite();
         }
     },
 
@@ -501,23 +488,8 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             custom_code: customCode
         });
 
-        // Update last modified of the page
         await supabase.from('sitemap').update({ last_modified: new Date().toISOString() }).eq('id', pageId);
     },
-
-    // --- Component Actions (Optimistic Local + Save Trigger) ---
-    // In a real app, you might auto-save or have a explicit save button. 
-    // To keep it simple, we will update local store normally, 
-    // AND trigger a debounced or immediate save?
-    // Let's implement immediate save for now, or rely on "Publish/Save" button. 
-    // User requested "Dev (Save) vs Live (Publish)". 
-    // So 'pageComponents' in store = DEV state. 
-    // We should autosave to DB 'page_content' which acts as Draft.
-    // 'Publish' action would be separate? 
-    // Actually, let's keep it simple: Actions update Store, and we rely on explicit 'savePageContent' call 
-    // OR we trigger savePageContent inside these actions.
-
-    // Let's trigger savePageContent on every component change for "Auto-Save Draft" experience.
 
     addComponent: (pageId, component) => {
         set((state) => ({
@@ -548,8 +520,6 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
                 )
             }
         }));
-        // Debounce this in real world (typing in text field triggers many updates)
-        // For MVP, direct save is okay if traffic is low
         get().savePageContent(pageId);
     },
 
@@ -565,7 +535,7 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
 
     updateCustomCode: (pageId, type, code) => {
         set((state) => ({
-            pageComponents: state.pageComponents, // No change
+            pageComponents: state.pageComponents,
             pageCustomCode: {
                 ...state.pageCustomCode,
                 [pageId]: {
@@ -577,9 +547,7 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
         get().savePageContent(pageId);
     },
 
-    // Templates
     saveTemplate: (name, pageId) => set((state) => {
-        // Template logic... for now local only
         return { templates: [...state.templates, { id: Math.random().toString(), name, areas: ['main'], thumbnail: '💾' }] };
     }),
 

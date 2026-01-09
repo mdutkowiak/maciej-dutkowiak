@@ -45,6 +45,16 @@ export interface SitemapNode {
   templateId?: string;
   locked?: boolean;
   isDeleted?: boolean;
+  pageData?: Record<string, any>; // Phase 14: Dynamic Document Data
+}
+
+export interface TemplateField {
+  id: string;
+  label: string;
+  type: 'text' | 'number' | 'date' | 'rich-text' | 'image' | 'select' | 'boolean';
+  required?: boolean;
+  options?: { label: string; value: string }[]; // For 'select'
+  defaultValue?: any;
 }
 
 export interface Template {
@@ -52,6 +62,7 @@ export interface Template {
   name: string;
   areas: string[]; // e.g., ['header', 'main', 'footer']
   thumbnail?: string;
+  fields?: TemplateField[]; // Phase 14: Custom fields defined by the template
 }
 
 // Crawler / SEO Audit Types

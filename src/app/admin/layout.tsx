@@ -11,7 +11,8 @@ import {
     Settings as SettingsIcon,
     ShieldCheck,
     HelpCircle,
-    LayoutDashboard
+    LayoutDashboard,
+    Trash2
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -36,7 +37,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 <span className="font-bold text-sm tracking-tight uppercase text-gray-400">Content</span>
                             </div>
                             <SitemapActionBar />
-                            <SitemapTree />
+                            <div className="flex-1 overflow-y-auto">
+                                <SitemapTree filter="active" />
+
+                                <div className="mt-8 px-4 py-2 border-t border-gray-100 dark:border-zinc-800">
+                                    <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                                        <Trash2 size={12} />
+                                        <span>Recycle Bin</span>
+                                    </div>
+                                    <SitemapTree filter="deleted" />
+                                </div>
+                            </div>
                         </>
                     )}
 

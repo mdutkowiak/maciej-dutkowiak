@@ -32,6 +32,7 @@ interface SiteStore {
     addPage: (parentId: string | null, page: Partial<SitemapNode>) => Promise<void>;
     updatePageStatus: (id: string, status: GenericStatus) => Promise<void>;
     deletePage: (id: string) => Promise<void>;
+    restorePage: (id: string) => Promise<void>;
     togglePageLock: (id: string) => Promise<void>;
 
     // Editor Actions
@@ -92,6 +93,7 @@ const buildTree = (items: any[], parentId: string | null = null): SitemapNode[] 
             slug: item.slug,
             status: item.status as GenericStatus,
             locked: item.locked,
+            isDeleted: item.is_deleted,
             lastModified: item.last_modified,
             templateId: item.template_id,
             children: buildTree(items, item.id)
@@ -262,8 +264,12 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
 
     updatePageProperties: async (id, props) => {
         try {
+            // Fetch current state first to check slug change
+            const { data: current } = await supabase.from('sitemap').select('slug, seo_metadata').eq('id', id).single();
+            const oldSlug = current?.slug;
+
             // If slug is changing, check uniqueness
-            if (props.slug) {
+            if (props.slug && props.slug !== oldSlug) {
                 const { data: existing } = await supabase
                     .from('sitemap')
                     .select('id')
@@ -274,6 +280,12 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
                 if (existing) {
                     return { success: false, error: 'Slug already exists' };
                 }
+
+                // Create redirect
+                await supabase.from('redirects').upsert({
+                    old_path: oldSlug,
+                    new_path: props.slug
+                }, { onConflict: 'old_path' });
             }
 
             const updateData: any = {
@@ -282,8 +294,6 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             if (props.title) updateData.title = props.title;
             if (props.slug) updateData.slug = props.slug;
             if (props.seoTitle || props.seoDesc) {
-                // Fetch current seo_metadata first to merge
-                const { data: current } = await supabase.from('sitemap').select('seo_metadata').eq('id', id).single();
                 updateData.seo_metadata = {
                     ...(current?.seo_metadata || {}),
                     title: props.seoTitle ?? current?.seo_metadata?.title,
@@ -360,10 +370,37 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
     },
 
     deletePage: async (id) => {
+        // Helper to find node in tree
+        const findNode = (nodes: SitemapNode[]): SitemapNode | null => {
+            for (const n of nodes) {
+                if (n.id === id) return n;
+                if (n.children) {
+                    const found = findNode(n.children);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+
+        const node = findNode(get().sitemap);
+
         if (get().activePageId === id) {
             set({ activePageId: null });
         }
-        await supabase.from('sitemap').delete().eq('id', id);
+
+        if (node?.isDeleted) {
+            // Permanent delete
+            await supabase.from('sitemap').delete().eq('id', id);
+        } else {
+            // Soft delete
+            await supabase.from('sitemap').update({ is_deleted: true }).eq('id', id);
+        }
+
+        await get().initializeSite();
+    },
+
+    restorePage: async (id) => {
+        await supabase.from('sitemap').update({ is_deleted: false }).eq('id', id);
         await get().initializeSite();
     },
 

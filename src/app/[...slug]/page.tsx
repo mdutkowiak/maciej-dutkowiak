@@ -4,10 +4,12 @@ import { useSiteStore } from "@/store/useSiteStore";
 import BlockRenderer from "@/components/cms/editor/BlockRenderer";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function DynamicPage() {
     const params = useParams();
+    const router = useRouter();
     const slugParts = params.slug as string[];
     const currentSlug = `/${slugParts.join('/')}`;
 
@@ -30,6 +32,24 @@ export default function DynamicPage() {
     };
 
     const currentNode = findNodeBySlug(sitemap, currentSlug);
+
+    // Handle Redirects
+    useEffect(() => {
+        const checkRedirects = async () => {
+            if (!isLoading && !currentNode) {
+                const { data } = await supabase
+                    .from('redirects')
+                    .select('new_path')
+                    .eq('old_path', currentSlug)
+                    .single();
+
+                if (data?.new_path) {
+                    router.push(data.new_path);
+                }
+            }
+        };
+        checkRedirects();
+    }, [currentNode, currentSlug, isLoading, router]);
 
     useEffect(() => {
         if (currentNode && !pageComponents[currentNode.id]) {
@@ -69,7 +89,7 @@ export default function DynamicPage() {
                         <p>This page exists but has no content yet.</p>
                     </div>
                 ) : (
-                    components.map(component => (
+                    components.map((component: any) => (
                         <BlockRenderer key={component.id} component={component} isEditable={false} />
                     ))
                 )}

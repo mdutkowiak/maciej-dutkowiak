@@ -44,6 +44,7 @@ export interface SitemapNode {
   lastModified?: string; // ISO Date
   templateId?: string;
   locked?: boolean;
+  isDeleted?: boolean;
 }
 
 export interface Template {

@@ -135,7 +135,7 @@ export default function VisualEditorPage() {
                             className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 rounded-lg shadow-sm border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
                         >
                             <Save size={16} />
-                            <span className="text-sm font-medium">Save</span>
+                            <span className="text-sm font-medium">Save as Draft</span>
                         </button>
 
                         <button

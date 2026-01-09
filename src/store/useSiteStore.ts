@@ -538,7 +538,10 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             custom_code: customCode
         });
 
-        await supabase.from('sitemap').update({ last_modified: new Date().toISOString() }).eq('id', pageId);
+        await supabase.from('sitemap').update({
+            last_modified: new Date().toISOString(),
+            status: 'draft'
+        }).eq('id', pageId);
 
         // Refresh sitemap in store to reflect last_modified and any other changes
         await get().initializeSite();

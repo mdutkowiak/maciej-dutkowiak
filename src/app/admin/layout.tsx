@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useSiteStore } from '@/store/useSiteStore';
 import SitemapTree from '@/components/cms/SitemapTree';
 import SitemapActionBar from '@/components/cms/SitemapActionBar';
@@ -17,6 +18,15 @@ import {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { initializeSite, activePageId, activeMode } = useSiteStore();
+    const pathname = usePathname();
+
+    const getLinkClass = (path: string) => {
+        const isActive = pathname === path;
+        return `text-sm font-medium transition-colors ${isActive
+                ? 'text-blue-600 dark:text-blue-400'
+                : 'text-gray-600 hover:text-black dark:text-gray-400 dark:hover:text-white'
+            }`;
+    };
 
     useEffect(() => {
         initializeSite();
@@ -106,14 +116,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Top Navigation */}
                 <header className="h-14 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between px-6">
-                    <div className="flex gap-6">
-                        <Link href="/admin" className="text-sm font-medium text-gray-600 hover:text-black dark:text-gray-400 dark:hover:text-white transition-colors">Dashboard</Link>
+                    <div className="flex gap-6 items-center">
+                        <Link href="/admin" className={getLinkClass('/admin')}>Dashboard</Link>
                         {activePageId && (
-                            <Link href="/admin/editor" className="text-sm font-medium text-blue-600 dark:text-blue-400">Editor</Link>
+                            <Link href="/admin/editor" className={getLinkClass('/admin/editor')}>Editor</Link>
                         )}
-                        <Link href="/admin/seo-report" className="text-sm font-medium text-gray-600 hover:text-black dark:text-gray-400 dark:hover:text-white transition-colors">SEO Report</Link>
-                        <Link href="/admin/settings" className="px-3 py-1 bg-blue-50 text-blue-600 rounded-md text-sm font-medium dark:bg-blue-900/20 dark:text-blue-400">Settings</Link>
-                        <Link href="/admin/cache" className="text-sm font-medium text-gray-600 hover:text-black dark:text-gray-400 dark:hover:text-white transition-colors">Performance</Link>
+                        <Link href="/admin/seo-report" className={getLinkClass('/admin/seo-report')}>SEO Report</Link>
+                        <Link href="/admin/settings" className={getLinkClass('/admin/settings')}>Settings</Link>
+                        <Link href="/admin/cache" className={getLinkClass('/admin/cache')}>Performance</Link>
                     </div>
 
                     <div className="flex items-center gap-4">

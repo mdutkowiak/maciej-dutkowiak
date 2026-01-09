@@ -125,9 +125,8 @@ function SortableItem({ node, depth, onAddChild, onEditSettings, onPickerAction,
                     )}
                 </div>
 
-                {/* Status Indicator */}
                 <div className="mr-3">
-                    <div className={`w-2 h-2 rounded-full ${node.status === 'published' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]'}`} />
+                    <div className={`w-2 h-2 rounded-full ${node.status === 'published' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.4)]'}`} />
                 </div>
 
                 {/* Handle (Dnd) */}

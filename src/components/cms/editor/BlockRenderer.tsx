@@ -34,7 +34,7 @@ export default function BlockRenderer({ component, isEditable = true }: BlockRen
                         }}
                     >
                         <img
-                            src={component.props.image || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&q=80"}
+                            src={component.props.imageUrl || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&q=80"}
                             alt={component.props.alt || "Hero Image"}
                             className="absolute inset-0 w-full h-full object-cover opacity-50"
                         />
@@ -60,7 +60,7 @@ export default function BlockRenderer({ component, isEditable = true }: BlockRen
                 );
 
             case 'GridSystem':
-                const cols = component.props.columns || 3;
+                const cols = parseInt(String(component.props.cols || 3));
                 return (
                     <div
                         className={twMerge(
@@ -84,7 +84,7 @@ export default function BlockRenderer({ component, isEditable = true }: BlockRen
                         isEditable && "border-dashed"
                     )}>
                         <div className="w-24 h-24 bg-gray-100 dark:bg-zinc-800 rounded-lg shrink-0 overflow-hidden">
-                            {component.props.image && <img src={component.props.image} alt={component.props.title} className="w-full h-full object-cover" />}
+                            {component.props.imageUrl && <img src={component.props.imageUrl} alt={component.props.title} className="w-full h-full object-cover" />}
                         </div>
                         <div>
                             <h4 className="font-bold text-lg">{component.props.title || 'Product/Project Title'}</h4>

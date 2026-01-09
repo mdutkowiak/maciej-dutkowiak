@@ -102,6 +102,19 @@ export default function PropertiesPanel() {
                                 />
                             </div>
                             <div>
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-tight mb-1">Heading Tag</label>
+                                <select
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-md bg-transparent text-sm"
+                                    value={component.props.tag || 'h1'}
+                                    onChange={(e) => handleChange('tag', e.target.value)}
+                                >
+                                    <option value="h1">H1 - Main Heading</option>
+                                    <option value="h2">H2 - Section</option>
+                                    <option value="h3">H3 - Subtitle</option>
+                                    <option value="h4">H4 - Small</option>
+                                </select>
+                            </div>
+                            <div>
                                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-tight mb-1">Background Image</label>
                                 <div className="flex gap-2">
                                     <input
@@ -120,17 +133,6 @@ export default function PropertiesPanel() {
                                 </div>
                             </div>
                         </>
-                    )}
-
-                    {/* Image Alt Validation */}
-                    {Object.entries(component.props).some(([k, v]) => typeof v === 'string' && (v.includes('.jpg') || v.includes('.png') || v.includes('.webp'))) && !component.props.alt && (
-                        <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-lg animate-pulse">
-                            <AlertTriangle size={14} className="text-amber-500 mt-0.5 shrink-0" />
-                            <div>
-                                <p className="text-[11px] font-bold text-amber-700 dark:text-amber-400">Missing Alt Text</p>
-                                <p className="text-[10px] text-amber-600 dark:text-amber-500">Add an 'alt' property to improve accessibility and SEO scores.</p>
-                            </div>
-                        </div>
                     )}
 
                     {/* RichText Fields */}
@@ -166,18 +168,98 @@ export default function PropertiesPanel() {
 
                     {/* GridSystem Fields */}
                     {component.type === 'GridSystem' && (
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-tight mb-1">Columns</label>
-                            <select
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-md bg-transparent text-sm"
-                                value={component.props.cols || '3'}
-                                onChange={(e) => handleChange('cols', e.target.value)}
-                            >
-                                <option value="1">1 Column</option>
-                                <option value="2">2 Columns</option>
-                                <option value="3">3 Columns</option>
-                                <option value="4">4 Columns</option>
-                            </select>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-tight mb-1">Layout Columns</label>
+                                <select
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-zinc-700 rounded-md bg-transparent text-sm"
+                                    value={component.props.cols || '3'}
+                                    onChange={(e) => handleChange('cols', e.target.value)}
+                                >
+                                    <option value="1">1 Column (Stack)</option>
+                                    <option value="2">2 Columns</option>
+                                    <option value="3">3 Columns</option>
+                                    <option value="4">4 Columns</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-tight mb-1">Items (Comma separated)</label>
+                                <textarea
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-zinc-700 rounded-md bg-transparent text-sm h-24"
+                                    value={(component.props.items || []).join(', ') || ''}
+                                    onChange={(e) => handleChange('items', e.target.value.split(',').map(s => s.trim()))}
+                                    placeholder="Feature 1, Feature 2, Feature 3"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ProductShowcase Fields */}
+                    {component.type === 'ProductShowcase' && (
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-tight mb-1">Product Title</label>
+                                <input
+                                    type="text"
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-zinc-700 rounded-md bg-transparent text-sm"
+                                    value={component.props.title || ''}
+                                    onChange={(e) => handleChange('title', e.target.value)}
+                                    placeholder="Product Name"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-tight mb-1">Description</label>
+                                <textarea
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-zinc-700 rounded-md bg-transparent text-sm h-20"
+                                    value={component.props.description || ''}
+                                    onChange={(e) => handleChange('description', e.target.value)}
+                                    placeholder="Summary..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-tight mb-1">Price / Tag</label>
+                                <input
+                                    type="text"
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-zinc-700 rounded-md bg-transparent text-sm"
+                                    value={component.props.price || ''}
+                                    onChange={(e) => handleChange('price', e.target.value)}
+                                    placeholder="$99.99"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-tight mb-1">Product Image</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        className="flex-1 px-3 py-2 border border-gray-200 dark:border-zinc-700 rounded-md bg-transparent text-xs"
+                                        value={component.props.imageUrl || ''}
+                                        onChange={(e) => handleChange('imageUrl', e.target.value)}
+                                    />
+                                    <button
+                                        onClick={() => openMediaManager('imageUrl')}
+                                        className="p-2 bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-md"
+                                    >
+                                        <ImageIcon size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Contextual SEO Validation (Pulse Alert) */}
+                    {Object.entries(component.props).some(([k, v]) => typeof v === 'string' && (v.includes('http') && (v.includes('.jpg') || v.includes('.png') || v.includes('.webp')))) && !component.props.alt && (
+                        <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-lg animate-pulse">
+                            <AlertTriangle size={14} className="text-amber-500 mt-0.5 shrink-0" />
+                            <div>
+                                <p className="text-[11px] font-bold text-amber-700 dark:text-amber-400">Missing Alt Text</p>
+                                <p className="text-[10px] text-amber-600 dark:text-amber-500">Add an 'alt' property to improve accessibility and SEO scores.</p>
+                                <input
+                                    type="text"
+                                    className="mt-2 w-full px-2 py-1 bg-white dark:bg-zinc-800 border border-amber-200 dark:border-amber-900/50 rounded text-[10px]"
+                                    placeholder="Enter alt text here..."
+                                    onChange={(e) => handleChange('alt', e.target.value)}
+                                />
+                            </div>
                         </div>
                     )}
 
@@ -225,8 +307,8 @@ export default function PropertiesPanel() {
                 {/* SEO Status Bar */}
                 {seoReports[activePageId] && (
                     <div className={`p-3 rounded-lg border flex items-center justify-between ${seoReports[activePageId].seoScore === 'good' ? 'bg-green-50 border-green-100 text-green-700 dark:bg-green-900/10 dark:border-green-900/30 dark:text-green-400' :
-                            seoReports[activePageId].seoScore === 'critical' ? 'bg-red-50 border-red-100 text-red-700 dark:bg-red-900/10 dark:border-red-900/30 dark:text-red-400' :
-                                'bg-amber-50 border-amber-100 text-amber-700 dark:bg-amber-900/10 dark:border-amber-900/30 dark:text-amber-400'
+                        seoReports[activePageId].seoScore === 'critical' ? 'bg-red-50 border-red-100 text-red-700 dark:bg-red-900/10 dark:border-red-900/30 dark:text-red-400' :
+                            'bg-amber-50 border-amber-100 text-amber-700 dark:bg-amber-900/10 dark:border-amber-900/30 dark:text-amber-400'
                         }`}>
                         <div className="flex items-center gap-2">
                             {seoReports[activePageId].seoScore === 'good' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}

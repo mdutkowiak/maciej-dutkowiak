@@ -25,14 +25,25 @@ export default function BlockRenderer({ component, isEditable = true }: BlockRen
         switch (component.type) {
             case 'HeroCover':
                 return (
-                    <div className="relative h-64 w-full bg-gray-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden rounded-lg group">
+                    <div
+                        className="relative w-full bg-gray-200 dark:bg-zinc-800 flex items-center justify-center overflow-hidden rounded-lg group"
+                        style={{
+                            paddingTop: `${(component.props.paddingY || 4) * 0.5}rem`,
+                            paddingBottom: `${(component.props.paddingY || 4) * 0.5}rem`,
+                            minHeight: '16rem'
+                        }}
+                    >
                         <img
                             src={component.props.image || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&q=80"}
-                            alt="Placeholder"
+                            alt={component.props.alt || "Hero Image"}
                             className="absolute inset-0 w-full h-full object-cover opacity-50"
                         />
                         <div className="relative z-10 text-center p-4">
-                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{component.props.title || 'Hero Section'}</h1>
+                            {React.createElement(
+                                component.props.tag || 'h1',
+                                { className: "text-3xl font-bold text-gray-900 dark:text-white" },
+                                component.props.title || 'Hero Section'
+                            )}
                             <p className="text-gray-700 dark:text-gray-200 mt-2">{component.props.subtitle || 'Drag & Drop content here'}</p>
                         </div>
                     </div>

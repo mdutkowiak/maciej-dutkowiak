@@ -14,7 +14,7 @@ import { useSiteStore } from '@/store/useSiteStore';
 import { ComponentData } from '@/store/types';
 
 export default function VisualEditorPage() {
-    const { activePageId, addComponent, reorderComponents, pageComponents, selectedComponentId, updatePageStatus, sitemap } = useSiteStore();
+    const { activePageId, addComponent, reorderComponents, pageComponents, selectedComponentId, updatePageStatus, sitemap, loadPageContent, savePageContent } = useSiteStore();
     const [activeDragItem, setActiveDragItem] = useState<ComponentData | null>(null);
     const [showCodePanel, setShowCodePanel] = useState(false);
 
@@ -33,6 +33,24 @@ export default function VisualEditorPage() {
 
 
     const sensors = useSensors(useSensor(PointerSensor));
+
+    // Load content when active page changes
+    React.useEffect(() => {
+        if (activePageId && !pageComponents[activePageId]) {
+            loadPageContent(activePageId);
+        }
+    }, [activePageId, pageComponents, loadPageContent]);
+
+    const handleSave = async () => {
+        if (activePageId) {
+            try {
+                await savePageContent(activePageId);
+                alert('Changes saved as draft!');
+            } catch (e) {
+                alert('Error saving changes');
+            }
+        }
+    };
 
     const handlePublish = () => {
         if (activePageId) {
@@ -112,6 +130,14 @@ export default function VisualEditorPage() {
 
                     {/* Toolbar - lowered z-index to stay behind modals */}
                     <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                        <button
+                            onClick={handleSave}
+                            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-800 text-blue-600 dark:text-blue-400 rounded-lg shadow-sm border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
+                        >
+                            <Save size={16} />
+                            <span className="text-sm font-medium">Save</span>
+                        </button>
+
                         <button
                             onClick={handlePreview}
                             className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-200 rounded-lg shadow-sm border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"

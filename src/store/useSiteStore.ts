@@ -437,6 +437,12 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
                 pageComponents: { ...state.pageComponents, [pageId]: data.components || [] },
                 pageCustomCode: { ...state.pageCustomCode, [pageId]: data.custom_code || { css: '', js: '' } }
             }));
+        } else if (error && error.code === 'PGRST116') {
+            // No content yet, initialize with empty
+            set((state) => ({
+                pageComponents: { ...state.pageComponents, [pageId]: [] },
+                pageCustomCode: { ...state.pageCustomCode, [pageId]: { css: '', js: '' } }
+            }));
         }
     },
 

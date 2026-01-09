@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  const { sitemap, pageComponents, initializeSite, loadPageContent, isLoading } = useSiteStore();
+  const { sitemap, pageComponents, pageCustomCode, initializeSite, loadPageContent, isLoading } = useSiteStore();
 
   useEffect(() => {
     initializeSite();
@@ -53,9 +53,22 @@ export default function Home() {
   }
 
   const components = pageComponents[homeNode.id] || [];
+  const customCode = pageCustomCode[homeNode.id] || { css: '', js: '' };
+  const pageData = homeNode.pageData || {};
 
   return (
     <div className="min-h-screen bg-white dark:bg-black font-sans text-gray-900 dark:text-gray-100">
+      {/* Custom CSS Injection */}
+      <style dangerouslySetInnerHTML={{ __html: customCode.css }} />
+
+      {/* Custom JS Injection (Safe execution) */}
+      {customCode.js && (
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){ try { ${customCode.js} } catch(e) { console.error('Custom JS Error:', e); } })();`
+          }}
+        />
+      )}
       {components.length === 0 ? (
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-gray-400">
           <h1 className="text-2xl font-bold mb-2">Welcome to your new site</h1>
@@ -63,6 +76,19 @@ export default function Home() {
         </div>
       ) : (
         <main>
+          {/* Render Template Document Fields (Phase 14) */}
+          {Object.keys(pageData).length > 0 && (
+            <div className="container mx-auto px-4 py-8 mb-8 border-b border-gray-100 dark:border-zinc-800">
+              <div className="space-y-4">
+                {Object.entries(pageData).map(([key, val]) => (
+                  <div key={key}>
+                    <p className="text-[10px] uppercase font-bold text-blue-500 mb-1">{key}</p>
+                    <div className="text-lg">{String(val)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {components.map(component => (
             <BlockRenderer key={component.id} component={component} isEditable={false} />
           ))}

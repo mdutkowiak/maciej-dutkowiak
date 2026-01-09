@@ -51,27 +51,45 @@ export default function BlockRenderer({ component, isEditable = true }: BlockRen
 
             case 'RichText':
                 return (
-                    <div className="prose dark:prose-invert max-w-none p-4 border border-dashed border-gray-300 dark:border-zinc-700 rounded-lg min-h-[100px]"
-                        dangerouslySetInnerHTML={{ __html: component.props.content || '<h3>Rich Text Block</h3><p>Start typing your content here...</p>' }}
+                    <div className={twMerge(
+                        "prose dark:prose-invert max-w-none",
+                        isEditable && "p-4 border border-dashed border-gray-300 dark:border-zinc-700 rounded-lg min-h-[100px]"
+                    )}
+                        dangerouslySetInnerHTML={{ __html: component.props.content || (isEditable ? '<h3>Rich Text Block</h3><p>Start typing your content here...</p>' : '') }}
                     />
                 );
 
             case 'GridSystem':
+                const cols = component.props.columns || 3;
                 return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 border border-dashed border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg">
-                        <div className="h-24 bg-white dark:bg-zinc-900 rounded border border-gray-100 dark:border-zinc-800 flex items-center justify-center text-xs text-gray-400">Col 1</div>
-                        <div className="h-24 bg-white dark:bg-zinc-900 rounded border border-gray-100 dark:border-zinc-800 flex items-center justify-center text-xs text-gray-400">Col 2</div>
-                        <div className="h-24 bg-white dark:bg-zinc-900 rounded border border-gray-100 dark:border-zinc-800 flex items-center justify-center text-xs text-gray-400">Col 3</div>
+                    <div
+                        className={twMerge(
+                            "grid gap-4",
+                            isEditable && "p-4 border border-dashed border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg"
+                        )}
+                        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+                    >
+                        {(component.props.items || ['Col 1', 'Col 2', 'Col 3']).map((item: any, i: number) => (
+                            <div key={i} className="h-24 bg-gray-50 dark:bg-zinc-900 rounded border border-gray-100 dark:border-zinc-800 flex items-center justify-center text-xs text-gray-400">
+                                {typeof item === 'string' ? item : (item.title || `Item ${i + 1}`)}
+                            </div>
+                        ))}
                     </div>
                 );
 
             case 'ProductShowcase':
                 return (
-                    <div className="flex gap-4 p-4 border rounded-lg bg-white dark:bg-zinc-900 shadow-sm">
-                        <div className="w-24 h-24 bg-gray-100 dark:bg-zinc-800 rounded-md shrink-0"></div>
+                    <div className={twMerge(
+                        "flex gap-4 p-6 border rounded-xl bg-white dark:bg-zinc-900 shadow-sm",
+                        isEditable && "border-dashed"
+                    )}>
+                        <div className="w-24 h-24 bg-gray-100 dark:bg-zinc-800 rounded-lg shrink-0 overflow-hidden">
+                            {component.props.image && <img src={component.props.image} alt={component.props.title} className="w-full h-full object-cover" />}
+                        </div>
                         <div>
-                            <h4 className="font-bold">Project Title</h4>
-                            <p className="text-sm text-gray-500 mt-1">Short description of the project goes here. Showcase your work.</p>
+                            <h4 className="font-bold text-lg">{component.props.title || 'Product/Project Title'}</h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{component.props.description || 'Short description of the project goes here. Showcase your work.'}</p>
+                            {component.props.price && <p className="text-blue-500 font-bold mt-2">{component.props.price}</p>}
                         </div>
                     </div>
                 );

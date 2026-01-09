@@ -56,7 +56,7 @@ export default function PropertiesPanel() {
         };
 
         return (
-            <div className="w-80 bg-white dark:bg-zinc-900 border-l border-gray-200 dark:border-zinc-800 flex flex-col h-full shadow-lg z-30">
+            <div className="flex flex-col flex-1 min-h-0 bg-white dark:bg-zinc-900 shadow-lg z-30">
                 <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-zinc-800">
                     <div className="flex items-center gap-2">
                         <Settings size={16} className="text-blue-500" />
@@ -197,7 +197,7 @@ export default function PropertiesPanel() {
 
     // --- Render Page Data (No Component Selected) ---
     return (
-        <div className="w-80 bg-white dark:bg-zinc-900 border-l border-gray-200 dark:border-zinc-800 flex flex-col h-full shadow-lg z-30 animate-in slide-in-from-right duration-300">
+        <div className="flex flex-col flex-1 min-h-0 bg-white dark:bg-zinc-900 animate-in slide-in-from-right duration-300">
             <div className="flex items-center gap-2 p-4 border-b border-gray-200 dark:border-zinc-800">
                 <FileText size={16} className="text-blue-500" />
                 <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Page Content Data</h3>

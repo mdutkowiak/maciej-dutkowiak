@@ -41,7 +41,7 @@ function ToolkitItem({ type, label, icon }: ToolkitItemProps) {
 
 export default function ComponentToolkit() {
     return (
-        <div className="w-64 bg-gray-50/50 dark:bg-zinc-950/50 border-l border-gray-200 dark:border-zinc-800 p-4 flex flex-col h-full">
+        <div className="flex-1 bg-gray-50/50 dark:bg-zinc-950/50 p-4 flex flex-col min-h-0 overflow-y-auto">
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Components</h3>
 
             <ToolkitItem type="HeroCover" label="Hero Cover" icon={<Image size={18} />} />

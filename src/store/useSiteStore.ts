@@ -80,8 +80,26 @@ interface SiteStore {
 
 const INITIAL_TEMPLATES: Template[] = [
     { id: 'blank', name: 'Blank Page', areas: ['main'], thumbnail: '📄' },
-    { id: 'home', name: 'Home Layout', areas: ['hero', 'features', 'cta'], thumbnail: '🏠' },
-    { id: 'landing', name: 'Landing Page', areas: ['header', 'main', 'footer'], thumbnail: '🚀' },
+    {
+        id: 'home',
+        name: 'Home Layout',
+        areas: ['hero', 'features', 'cta'],
+        thumbnail: '🏠',
+        fields: [
+            { id: 'promo_text', label: 'Promo Banner Text', type: 'text' },
+            { id: 'show_newsletter', label: 'Show Newsletter', type: 'boolean', defaultValue: true }
+        ]
+    },
+    {
+        id: 'landing',
+        name: 'Landing Page',
+        areas: ['header', 'main', 'footer'],
+        thumbnail: '🚀',
+        fields: [
+            { id: 'campaign_id', label: 'Campaign ID', type: 'text' },
+            { id: 'conversion_goal', label: 'Target conversion (%)', type: 'number' }
+        ]
+    },
     {
         id: 'blog',
         name: 'Blog Post',

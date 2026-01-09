@@ -146,8 +146,11 @@ export default function VisualEditorPage() {
                     )}
                 </div>
 
-                {/* Right: Toolkit or Properties */}
-                {selectedComponentId ? <PropertiesPanel /> : <ComponentToolkit />}
+                {/* Right Panel: Properties & Toolkit */}
+                <div className="w-80 flex flex-col border-l border-gray-200 dark:border-zinc-800 h-full overflow-hidden">
+                    <PropertiesPanel />
+                    {!selectedComponentId && <ComponentToolkit />}
+                </div>
 
                 {/* Drag Overlay (Visual feedback while dragging) */}
                 <DragOverlay>

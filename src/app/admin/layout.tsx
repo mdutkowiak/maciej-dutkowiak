@@ -1,33 +1,95 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import Link from 'next/link';
+import { useSiteStore } from '@/store/useSiteStore';
 import SitemapTree from '@/components/cms/SitemapTree';
 import SitemapActionBar from '@/components/cms/SitemapActionBar';
-import { useEffect } from 'react';
-import { useSiteStore } from '@/store/useSiteStore';
-import Link from 'next/link'; // Assuming Link is needed for the new layout
+import NavigationRail from '@/components/cms/NavigationRail';
+import {
+    Folder,
+    Settings as SettingsIcon,
+    ShieldCheck,
+    HelpCircle,
+    LayoutDashboard
+} from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const { initializeSite, activePageId } = useSiteStore();
+    const { initializeSite, activePageId, activeMode } = useSiteStore();
 
     useEffect(() => {
         initializeSite();
     }, [initializeSite]);
 
     return (
-        <div className="flex h-screen bg-gray-50 dark:bg-black">
-            {/* Sidebar (Sitemap) */}
-            <div className="w-64 border-r border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col">
-                <div className="h-14 border-b border-gray-200 dark:border-zinc-800 flex items-center px-4 font-bold text-xl tracking-tight">
-                    CMS <span className="text-blue-600 ml-1">Admin</span>
+        <div className="flex h-screen bg-white dark:bg-black overflow-hidden">
+            {/* Far Left: Navigation Rail */}
+            <NavigationRail />
+
+            {/* Middle: Mode-specific Sidebar */}
+            {activeMode !== 'help' && (
+                <div className="w-72 border-r border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col shrink-0 animate-in slide-in-from-left-1 duration-200">
+                    {activeMode === 'content' && (
+                        <>
+                            <div className="h-14 border-b border-gray-200 dark:border-zinc-800 flex items-center px-4 gap-2">
+                                <LayoutDashboard size={16} className="text-blue-500" />
+                                <span className="font-bold text-sm tracking-tight uppercase text-gray-400">Content</span>
+                            </div>
+                            <SitemapActionBar />
+                            <SitemapTree />
+                        </>
+                    )}
+
+                    {activeMode === 'media' && (
+                        <>
+                            <div className="h-14 border-b border-gray-200 dark:border-zinc-800 flex items-center px-4 gap-2">
+                                <Folder size={16} className="text-amber-500" />
+                                <span className="font-bold text-sm tracking-tight uppercase text-gray-400">Media</span>
+                            </div>
+                            <div className="p-4 space-y-4">
+                                <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Library</div>
+                                <div className="space-y-1">
+                                    <button className="w-full text-left px-3 py-2 text-sm rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium">All Assets</button>
+                                    <button className="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400">Logos</button>
+                                    <button className="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400">Blog Images</button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {activeMode === 'settings' && (
+                        <>
+                            <div className="h-14 border-b border-gray-200 dark:border-zinc-800 flex items-center px-4 gap-2">
+                                <SettingsIcon size={16} className="text-zinc-500" />
+                                <span className="font-bold text-sm tracking-tight uppercase text-gray-400">Settings</span>
+                            </div>
+                            <div className="p-4 space-y-4">
+                                <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Global</div>
+                                <div className="space-y-1">
+                                    <Link href="/admin/settings" className="block w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400">Branding</Link>
+                                    <Link href="/admin/seo-report" className="block w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400">SEO Report</Link>
+                                    <Link href="/admin/cache" className="block w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400">Performance</Link>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {activeMode === 'users' && (
+                        <>
+                            <div className="h-14 border-b border-gray-200 dark:border-zinc-800 flex items-center px-4 gap-2">
+                                <ShieldCheck size={16} className="text-green-500" />
+                                <span className="font-bold text-sm tracking-tight uppercase text-gray-400">Users</span>
+                            </div>
+                            <div className="p-6 text-center space-y-3">
+                                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-full flex items-center justify-center mx-auto">
+                                    <ShieldCheck size={24} />
+                                </div>
+                                <p className="text-xs text-gray-500">User management is available in the Pro version.</p>
+                            </div>
+                        </>
+                    )}
                 </div>
-
-                {/* Sitemap Actions */}
-                <SitemapActionBar />
-
-                {/* Sitemap Tree */}
-                <SitemapTree />
-            </div>
+            )}
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col overflow-hidden">

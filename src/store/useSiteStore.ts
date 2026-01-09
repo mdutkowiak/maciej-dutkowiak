@@ -69,6 +69,10 @@ interface SiteStore {
         totalViews: string; // Mock for now but stored in state
     };
     fetchDashboardStats: () => Promise<void>;
+
+    // Navigation & Modes (Phase 11)
+    activeMode: 'content' | 'media' | 'settings' | 'users' | 'help';
+    setActiveMode: (mode: 'content' | 'media' | 'settings' | 'users' | 'help') => void;
 }
 
 const INITIAL_TEMPLATES: Template[] = [
@@ -110,6 +114,7 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
         draftPages: 0,
         totalViews: '0',
     },
+    activeMode: 'content',
 
     initializeSite: async () => {
         set({ isLoading: true, errorMessage: null });
@@ -511,4 +516,5 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
 
     setSelectedComponent: (id) => set({ selectedComponentId: id }),
 
+    setActiveMode: (mode) => set({ activeMode: mode }),
 }));

@@ -100,3 +100,21 @@ export interface SiteSettings {
   };
 }
 
+export interface MediaFolder {
+  id: string;
+  name: string;
+  parentId: string | null;
+  createdAt: string;
+}
+
+export interface Asset {
+  id: string;
+  name: string;
+  fileUrl: string;
+  fileType: string;
+  sizeBytes: number;
+  folderId: string | null;
+  isDeleted: boolean;
+  createdAt: string;
+  metadata: Record<string, any>;
+}

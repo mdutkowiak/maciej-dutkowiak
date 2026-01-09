@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
     FileText,
     Image,
@@ -14,18 +16,27 @@ import Tooltip from '@/components/ui/Tooltip';
 
 export default function NavigationRail() {
     const { activeMode, setActiveMode } = useSiteStore();
+    const pathname = usePathname();
 
     const items = [
-        { id: 'content', icon: FileText, label: 'Content' },
-        { id: 'media', icon: Image, label: 'Media' },
-        { id: 'settings', icon: Settings, label: 'Settings' },
-        { id: 'users', icon: Users, label: 'Users' },
+        { id: 'content', icon: FileText, label: 'Content', href: '/admin' },
+        { id: 'media', icon: Image, label: 'Media', href: '/admin/media' },
+        { id: 'settings', icon: Settings, label: 'Settings', href: '/admin/settings' },
+        { id: 'users', icon: Users, label: 'Users', href: '/admin/users' },
     ] as const;
+
+    // Determine active mode based on path or store
+    React.useEffect(() => {
+        if (pathname === '/admin/media') setActiveMode('media');
+        else if (pathname.startsWith('/admin/settings') || pathname.startsWith('/admin/seo-report')) setActiveMode('settings');
+        else if (pathname.startsWith('/admin/users')) setActiveMode('users');
+        else if (pathname.startsWith('/admin')) setActiveMode('content');
+    }, [pathname, setActiveMode]);
 
     return (
         <aside className="w-[60px] bg-zinc-950 flex flex-col items-center py-4 border-r border-white/5 z-[100] shrink-0">
             {/* Logo */}
-            <div className="mb-8 p-2 bg-blue-600 rounded-lg shadow-lg shadow-blue-500/20">
+            <div className="mb-8 p-2 bg-blue-600 rounded-lg shadow-lg shadow-blue-500/20 active:scale-95 transition-transform cursor-pointer">
                 <Box size={22} className="text-white" />
             </div>
 
@@ -37,10 +48,10 @@ export default function NavigationRail() {
 
                     return (
                         <Tooltip key={item.id} content={item.label}>
-                            <button
-                                onClick={() => setActiveMode(item.id)}
+                            <Link
+                                href={item.href}
                                 className={`
-                                    relative p-3 rounded-xl transition-all group
+                                    relative p-3 rounded-xl transition-all group flex items-center justify-center
                                     ${isActive
                                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
                                         : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5'}
@@ -50,7 +61,7 @@ export default function NavigationRail() {
                                 {isActive && (
                                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full" />
                                 )}
-                            </button>
+                            </Link>
                         </Tooltip>
                     );
                 })}
@@ -61,7 +72,7 @@ export default function NavigationRail() {
                 <Tooltip content="Help & Docs">
                     <button
                         onClick={() => setActiveMode('help')}
-                        className={`p-3 rounded-xl transition-all ${activeMode === 'help' ? 'bg-blue-600 text-white' : 'text-zinc-500 hover:text-zinc-200'}`}
+                        className={`p-3 rounded-xl transition-all flex items-center justify-center ${activeMode === 'help' ? 'bg-blue-600 text-white' : 'text-zinc-500 hover:text-zinc-200'}`}
                     >
                         <CircleHelp size={22} />
                     </button>
@@ -69,7 +80,7 @@ export default function NavigationRail() {
 
                 <div className="h-px bg-white/5 my-2 w-8 mx-auto" />
 
-                <button className="p-3 text-zinc-500 hover:text-zinc-200 transition-all">
+                <button className="p-3 text-zinc-500 hover:text-zinc-200 transition-all flex items-center justify-center">
                     <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-white/10 flex items-center justify-center font-bold text-xs text-zinc-300">
                         MD
                     </div>

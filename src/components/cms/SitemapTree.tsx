@@ -39,14 +39,18 @@ import {
 import { useSiteStore } from '@/store/useSiteStore';
 import { SitemapNode } from '@/store/types';
 import Tooltip from '@/components/ui/Tooltip';
+import PageWizard from './PageWizard';
+import PageSettingsModal from './PageSettingsModal';
 
 // --- Sortable Item Component ---
 interface SortableItemProps {
     node: SitemapNode;
     depth: number;
+    onAddChild: (id: string) => void;
+    onEditSettings: (node: SitemapNode) => void;
 }
 
-function SortableItem({ node, depth }: SortableItemProps) {
+function SortableItem({ node, depth, onAddChild, onEditSettings }: SortableItemProps) {
     const {
         attributes,
         listeners,
@@ -155,10 +159,16 @@ function SortableItem({ node, depth }: SortableItemProps) {
                             <div className="fixed inset-0 z-[60]" onClick={() => setIsMenuOpen(false)} />
                             <div className="absolute top-full right-0 z-[70] min-w-[180px] bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg shadow-xl py-1 animate-in fade-in zoom-in-95 duration-100 mt-1">
                                 <button
-                                    onClick={() => handleAction(() => { })} // Wizard logic should be triggered via SiteStore or parent
+                                    onClick={() => handleAction(() => onAddChild(node.id))}
                                     className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-zinc-700"
                                 >
                                     <Plus size={14} className="text-blue-500" /> Add Child Page
+                                </button>
+                                <button
+                                    onClick={() => handleAction(() => onEditSettings(node))}
+                                    className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-zinc-700"
+                                >
+                                    <Search size={14} className="text-blue-500" /> Page Settings
                                 </button>
                                 <button
                                     onClick={() => handleAction(() => copyPage(node.id))}
@@ -196,7 +206,7 @@ function SortableItem({ node, depth }: SortableItemProps) {
             {hasChildren && !isCollapsed && (
                 <div className="ml-2 border-l border-gray-100 dark:border-zinc-800">
                     {node.children.map(child => (
-                        <SortableItem key={child.id} node={child} depth={depth + 1} />
+                        <SortableItem key={child.id} node={child} depth={depth + 1} onAddChild={onAddChild} onEditSettings={onEditSettings} />
                     ))}
                 </div>
             )}
@@ -208,6 +218,22 @@ function SortableItem({ node, depth }: SortableItemProps) {
 export default function SitemapTree() {
     const { sitemap, setSitemap, errorMessage } = useSiteStore();
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Modal States
+    const [isWizardOpen, setIsWizardOpen] = useState(false);
+    const [wizardParentId, setWizardParentId] = useState<string | null>(null);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [settingsNode, setSettingsNode] = useState<SitemapNode | null>(null);
+
+    const handleAddChild = (parentId: string) => {
+        setWizardParentId(parentId);
+        setIsWizardOpen(true);
+    };
+
+    const handleEditSettings = (node: SitemapNode) => {
+        setSettingsNode(node);
+        setIsSettingsOpen(true);
+    };
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -270,7 +296,13 @@ export default function SitemapTree() {
                         strategy={verticalListSortingStrategy}
                     >
                         {filteredSitemap.map((node) => (
-                            <SortableItem key={node.id} node={node} depth={0} />
+                            <SortableItem
+                                key={node.id}
+                                node={node}
+                                depth={0}
+                                onAddChild={handleAddChild}
+                                onEditSettings={handleEditSettings}
+                            />
                         ))}
                     </SortableContext>
                 </DndContext>
@@ -296,6 +328,20 @@ export default function SitemapTree() {
             <div className="p-3 bg-gray-50/50 dark:bg-zinc-900/50 text-[10px] text-gray-400 border-t border-gray-100 dark:border-zinc-800 text-center uppercase tracking-widest font-medium">
                 {sitemap.length} Pages • LaQ CMS
             </div>
+
+            {/* Modals */}
+            <PageWizard
+                isOpen={isWizardOpen}
+                onClose={() => setIsWizardOpen(false)}
+                parentId={wizardParentId}
+            />
+            {settingsNode && (
+                <PageSettingsModal
+                    isOpen={isSettingsOpen}
+                    onClose={() => setIsSettingsOpen(false)}
+                    node={settingsNode}
+                />
+            )}
         </div>
     );
 }

@@ -59,6 +59,16 @@ interface SiteStore {
     copyPage: (id: string) => void;
     pastePage: (parentId: string | null) => Promise<void>;
     movePage: (id: string, newParentId: string | null) => Promise<void>;
+    updatePageProperties: (id: string, properties: { title?: string; slug?: string; seoTitle?: string; seoDesc?: string }) => Promise<{ success: boolean; error?: string }>;
+
+    // Dashboard Stats
+    dashboardStats: {
+        totalPages: number;
+        publishedPages: number;
+        draftPages: number;
+        totalViews: string; // Mock for now but stored in state
+    };
+    fetchDashboardStats: () => Promise<void>;
 }
 
 const INITIAL_TEMPLATES: Template[] = [
@@ -94,13 +104,20 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
     selectedComponentId: null,
     templates: INITIAL_TEMPLATES,
     siteSettings: null,
+    dashboardStats: {
+        totalPages: 0,
+        publishedPages: 0,
+        draftPages: 0,
+        totalViews: '0',
+    },
 
     initializeSite: async () => {
         set({ isLoading: true, errorMessage: null });
         try {
             await Promise.all([
                 get().fetchSiteSettings(),
-                get().fetchUserPreferences()
+                get().fetchUserPreferences(),
+                get().fetchDashboardStats()
             ]);
             const { data, error } = await supabase.from('sitemap').select('*').order('title');
             if (error) throw error;
@@ -238,6 +255,48 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
         }
     },
 
+    updatePageProperties: async (id, props) => {
+        try {
+            // If slug is changing, check uniqueness
+            if (props.slug) {
+                const { data: existing } = await supabase
+                    .from('sitemap')
+                    .select('id')
+                    .eq('slug', props.slug)
+                    .neq('id', id)
+                    .single();
+
+                if (existing) {
+                    return { success: false, error: 'Slug already exists' };
+                }
+            }
+
+            const updateData: any = {
+                last_modified: new Date().toISOString()
+            };
+            if (props.title) updateData.title = props.title;
+            if (props.slug) updateData.slug = props.slug;
+            if (props.seoTitle || props.seoDesc) {
+                // Fetch current seo_metadata first to merge
+                const { data: current } = await supabase.from('sitemap').select('seo_metadata').eq('id', id).single();
+                updateData.seo_metadata = {
+                    ...(current?.seo_metadata || {}),
+                    title: props.seoTitle ?? current?.seo_metadata?.title,
+                    description: props.seoDesc ?? current?.seo_metadata?.description
+                };
+            }
+
+            const { error } = await supabase.from('sitemap').update(updateData).eq('id', id);
+            if (error) throw error;
+
+            await get().initializeSite();
+            return { success: true };
+        } catch (e: any) {
+            console.error('Error updating page properties:', e);
+            return { success: false, error: e.message };
+        }
+    },
+
     loadPageContent: async (pageId) => {
         // Check if already loaded? (Optional caching strategy)
         // if (get().pageComponents[pageId]) return; 
@@ -301,6 +360,30 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
         }
         await supabase.from('sitemap').delete().eq('id', id);
         await get().initializeSite();
+    },
+
+    fetchDashboardStats: async () => {
+        try {
+            const { data: allPages, error: countError } = await supabase.from('sitemap').select('status');
+            if (countError) throw countError;
+
+            if (allPages) {
+                const total = allPages.length;
+                const published = allPages.filter((p: { status: string }) => p.status === 'published').length;
+                const drafts = total - published;
+
+                set({
+                    dashboardStats: {
+                        totalPages: total,
+                        publishedPages: published,
+                        draftPages: drafts,
+                        totalViews: (total * 123).toLocaleString(), // Mock views factor
+                    }
+                });
+            }
+        } catch (e) {
+            console.error('Error fetching dashboard stats:', e);
+        }
     },
 
     updatePageStatus: async (id, status) => {

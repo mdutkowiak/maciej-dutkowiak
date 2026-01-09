@@ -4,8 +4,16 @@ import Link from 'next/link';
 import { LayoutDashboard, FileText, Search, Settings, Server, ExternalLink, Globe, Image, BarChart3, Zap } from 'lucide-react';
 import { StatCard, RecentEditsWidget, QuickActionsWidget } from "@/components/cms/dashboard/DashboardWidgets";
 import StorageStatsWidget from "@/components/cms/dashboard/StorageStatsWidget";
+import { useSiteStore } from '@/store/useSiteStore';
+import { useEffect } from 'react';
 
 export default function AdminPage() {
+    const { dashboardStats, fetchDashboardStats } = useSiteStore();
+
+    useEffect(() => {
+        fetchDashboardStats();
+    }, [fetchDashboardStats]);
+
     return (
         <div className="p-8 max-w-7xl mx-auto">
             <div className="mb-8">
@@ -17,8 +25,8 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <StatCard
                     title="Total Pages"
-                    value="12"
-                    change="+2 this week"
+                    value={dashboardStats.totalPages.toString()}
+                    change={`${dashboardStats.publishedPages} Published / ${dashboardStats.draftPages} Drafts`}
                     icon={<FileText size={20} />}
                 />
                 <StatCard
@@ -29,7 +37,7 @@ export default function AdminPage() {
                 />
                 <StatCard
                     title="Total Views"
-                    value="1.2k"
+                    value={dashboardStats.totalViews}
                     change="+12% vs last month"
                     icon={<BarChart3 size={20} />}
                 />

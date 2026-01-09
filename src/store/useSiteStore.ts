@@ -204,10 +204,10 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             const newPage = {
                 ...original,
                 id: newId,
-                parentId,
+                parent_id: parentId, // Correct column name
                 title: `${original.title} (Copy)`,
                 slug: `${original.slug}-copy-${Math.floor(Math.random() * 1000)}`,
-                lastModified: new Date().toISOString()
+                last_modified: new Date().toISOString()
             };
 
             const { error: insertError } = await supabase.from('sitemap').insert(newPage);
@@ -230,7 +230,7 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
 
     movePage: async (id, newParentId) => {
         try {
-            const { error } = await supabase.from('sitemap').update({ parentId: newParentId }).eq('id', id);
+            const { error } = await supabase.from('sitemap').update({ parent_id: newParentId }).eq('id', id);
             if (error) throw error;
             await get().initializeSite();
         } catch (e) {
@@ -287,15 +287,18 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
         const { data, error } = await supabase.from('sitemap').insert(newPage).select().single();
 
         if (data) {
-            // Refresh Sitemap
             await get().initializeSite();
+            // Automatically select the new page
+            get().setActivePage(data.id);
             // Create empty content record
             await supabase.from('page_content').insert({ page_id: data.id, components: [] });
         }
     },
 
     deletePage: async (id) => {
-        // Cascade delete should handle children and content in DB
+        if (get().activePageId === id) {
+            set({ activePageId: null });
+        }
         await supabase.from('sitemap').delete().eq('id', id);
         await get().initializeSite();
     },

@@ -64,8 +64,7 @@ function SortableItem({ node, depth }: SortableItemProps) {
         copyPage,
         pastePage,
         copiedPageId,
-        movePage,
-        deletePage // Assuming it exists or we should implement it
+        deletePage
     } = useSiteStore();
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -79,7 +78,7 @@ function SortableItem({ node, depth }: SortableItemProps) {
 
     const isActive = activePageId === node.id;
     const isCollapsed = collapsedNodes.includes(node.id);
-    const hasChildren = node.children.length > 0;
+    const hasChildren = node.children && node.children.length > 0;
 
     const handleToggle = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -96,9 +95,6 @@ function SortableItem({ node, depth }: SortableItemProps) {
             <div
                 ref={setNodeRef}
                 style={style}
-                {...attributes}
-                {...listeners}
-                onClick={() => setActivePage(node.id)}
                 className={`
                     flex items-center justify-between py-2 pr-2 cursor-pointer select-none group border-l-4 transition-colors duration-150
                     ${isActive
@@ -107,7 +103,12 @@ function SortableItem({ node, depth }: SortableItemProps) {
                     }
                 `}
             >
-                <div className="flex items-center gap-1.5 overflow-hidden">
+                {/* Drag Handle */}
+                <div {...attributes} {...listeners} className="p-1 text-gray-400 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing shrink-0">
+                    <GripVertical size={14} />
+                </div>
+
+                <div className="flex items-center gap-1.5 overflow-hidden flex-1" onClick={() => setActivePage(node.id)}>
                     {/* Expand/Collapse Chevron */}
                     <div
                         onClick={handleToggle}
@@ -136,10 +137,14 @@ function SortableItem({ node, depth }: SortableItemProps) {
                 </div>
 
                 {/* Context Menu Trigger */}
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 relative">
                     <button
-                        onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }}
-                        className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setIsMenuOpen(!isMenuOpen);
+                        }}
+                        className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                         <MoreVertical size={14} />
                     </button>
@@ -148,9 +153,9 @@ function SortableItem({ node, depth }: SortableItemProps) {
                     {isMenuOpen && (
                         <>
                             <div className="fixed inset-0 z-[60]" onClick={() => setIsMenuOpen(false)} />
-                            <div className="absolute top-full right-4 z-[70] min-w-[160px] bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg shadow-xl py-1 animate-in fade-in zoom-in-95 duration-100">
+                            <div className="absolute top-full right-0 z-[70] min-w-[180px] bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg shadow-xl py-1 animate-in fade-in zoom-in-95 duration-100 mt-1">
                                 <button
-                                    onClick={() => handleAction(() => { })} // TODO: Open wizard for child
+                                    onClick={() => handleAction(() => { })} // Wizard logic should be triggered via SiteStore or parent
                                     className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-zinc-700"
                                 >
                                     <Plus size={14} className="text-blue-500" /> Add Child Page
@@ -169,14 +174,14 @@ function SortableItem({ node, depth }: SortableItemProps) {
                                     <Clipboard size={14} /> Paste Under
                                 </button>
                                 <button
-                                    onClick={() => handleAction(() => { })} // TODO: Open move modal
-                                    className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-zinc-700"
+                                    onClick={() => handleAction(() => { })}
+                                    className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-zinc-700 font-normal"
                                 >
                                     <Move size={14} /> Move Page
                                 </button>
                                 <div className="h-px bg-gray-100 dark:bg-zinc-700 my-1" />
                                 <button
-                                    onClick={() => handleAction(() => deletePage?.(node.id))}
+                                    onClick={() => handleAction(() => deletePage(node.id))}
                                     className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600"
                                 >
                                     <Trash2 size={14} /> Delete
@@ -214,9 +219,9 @@ export default function SitemapTree() {
     function handleDragEnd(event: DragEndEvent) {
         if (searchQuery) return;
         const { active, over } = event;
-        if (active.id !== over?.id) {
+        if (active && over && active.id !== over.id) {
             const oldIndex = sitemap.findIndex((i) => i.id === active.id);
-            const newIndex = sitemap.findIndex((i) => i.id === over?.id);
+            const newIndex = sitemap.findIndex((i) => i.id === over.id);
             if (oldIndex !== -1 && newIndex !== -1) {
                 setSitemap(arrayMove(sitemap, oldIndex, newIndex));
             }
@@ -228,7 +233,7 @@ export default function SitemapTree() {
         const filterRecursive = (nodes: SitemapNode[]): SitemapNode[] => {
             return nodes.reduce((acc, node) => {
                 const matches = node.title.toLowerCase().includes(searchQuery.toLowerCase());
-                const children = filterRecursive(node.children);
+                const children = node.children ? filterRecursive(node.children) : [];
                 if (matches || children.length > 0) {
                     acc.push({ ...node, children });
                 }
@@ -239,7 +244,7 @@ export default function SitemapTree() {
     }, [sitemap, searchQuery]);
 
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 shadow-sm">
+        <div className="flex flex-col h-full bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 shadow-sm overflow-hidden">
             {/* Search Bar */}
             <div className="p-3 border-b border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">
                 <div className="relative group">

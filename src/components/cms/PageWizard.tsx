@@ -34,17 +34,15 @@ export default function PageWizard({ isOpen, onClose, parentId }: PageWizardProp
         setStep(1);
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!title || !selectedTemplateId) return;
 
-        addPage(parentId, {
+        await addPage(parentId, {
             title,
             slug: slug.startsWith('/') ? slug : `/${slug}`,
             templateId: selectedTemplateId,
-            // In a real app we would pass SEO data here too
         });
 
-        // Reset and Close
         resetForm();
         onClose();
     };
@@ -94,8 +92,8 @@ export default function PageWizard({ isOpen, onClose, parentId }: PageWizardProp
                                         key={template.id}
                                         onClick={() => setSelectedTemplateId(template.id)}
                                         className={`group relative flex flex-col items-center text-center p-6 border-2 rounded-xl transition-all ${selectedTemplateId === template.id
-                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                                : 'border-dashed border-gray-200 dark:border-zinc-700 hover:border-blue-300'
+                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                            : 'border-dashed border-gray-200 dark:border-zinc-700 hover:border-blue-300'
                                             }`}
                                     >
                                         <div className="text-4xl mb-3 grayscale group-hover:grayscale-0 transition-all">

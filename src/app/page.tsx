@@ -6,13 +6,31 @@ import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  const { sitemap, pageComponents, initializeSite, isLoading } = useSiteStore();
+  const { sitemap, pageComponents, initializeSite, loadPageContent, isLoading } = useSiteStore();
 
   useEffect(() => {
     initializeSite();
   }, [initializeSite]);
 
-  const homeNode = sitemap.find(n => n.slug === '/');
+  // Find home node recursively
+  const findNodeBySlug = (nodes: any[], slug: string): any => {
+    for (const node of nodes) {
+      if (node.slug === slug) return node;
+      if (node.children) {
+        const found = findNodeBySlug(node.children, slug);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const homeNode = findNodeBySlug(sitemap, '/');
+
+  useEffect(() => {
+    if (homeNode && !pageComponents[homeNode.id]) {
+      loadPageContent(homeNode.id);
+    }
+  }, [homeNode, pageComponents, loadPageContent]);
 
   if (isLoading) {
     return (

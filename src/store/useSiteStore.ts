@@ -181,6 +181,24 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
         return find(get().sitemap);
     },
 
+    addPage: async (parentId, page) => {
+        const id = crypto.randomUUID();
+        const { error } = await supabase.from('sitemap').insert({
+            id,
+            parent_id: parentId,
+            title: page.title || 'Untitled Page',
+            slug: page.slug || `/page-${Date.now()}`,
+            status: page.status || 'draft',
+            template_id: page.templateId || 'blank',
+            locked: false,
+            is_deleted: false,
+            last_modified: new Date().toISOString()
+        });
+
+        if (error) throw error;
+        await get().initializeSite();
+    },
+
     fetchSiteSettings: async () => {
         try {
             const { data, error } = await supabase.from('site_settings').select('*').eq('id', 'global').single();

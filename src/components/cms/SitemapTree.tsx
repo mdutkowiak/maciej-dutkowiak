@@ -126,7 +126,12 @@ function SortableItem({ node, depth, onAddChild, onEditSettings, onPickerAction,
                 </div>
 
                 <div className="mr-3">
-                    <div className={`w-2 h-2 rounded-full ${node.status === 'published' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.4)]'}`} />
+                    <div className={`w-2 h-2 rounded-full ${node.status === 'published'
+                            ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]'
+                            : node.status === 'archived'
+                                ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'
+                                : 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.4)]'
+                        }`} />
                 </div>
 
                 {/* Handle (Dnd) */}

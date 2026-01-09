@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { DndContext, DragOverlay, DragStartEvent, DragEndEvent, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
-import { Code, Eye, Save, Globe } from 'lucide-react';
+import { Code, Eye, Save, Globe, ShieldOff } from 'lucide-react';
 
 import DevicePreviewWrapper from '@/components/cms/DevicePreviewWrapper';
 import ComponentToolkit from '@/components/cms/editor/ComponentToolkit';
@@ -56,6 +56,13 @@ export default function VisualEditorPage() {
         if (activePageId) {
             updatePageStatus(activePageId, 'published');
             alert('Page Published! (Status updated to published)');
+        }
+    };
+
+    const handleUnpublish = () => {
+        if (activePageId) {
+            updatePageStatus(activePageId, 'archived');
+            alert('Page Unpublished! (Status updated to archived - hidden from frontend)');
         }
     };
 
@@ -152,6 +159,14 @@ export default function VisualEditorPage() {
                         >
                             <Globe size={16} />
                             <span className="text-sm font-medium">Publish</span>
+                        </button>
+
+                        <button
+                            onClick={handleUnpublish}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition-colors"
+                        >
+                            <ShieldOff size={16} />
+                            <span className="text-sm font-medium">Unpublish</span>
                         </button>
                     </div>
 

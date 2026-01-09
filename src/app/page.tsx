@@ -40,11 +40,17 @@ export default function Home() {
     );
   }
 
-  if (!homeNode) {
+  if (!homeNode || homeNode.status === 'archived') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-10 text-center bg-white dark:bg-black">
-        <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Home page not found</h1>
-        <p className="text-gray-500 mb-6">Please create a page with slug '/' in the admin panel.</p>
+        <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+          {!homeNode ? 'Home page not found' : 'Under Construction'}
+        </h1>
+        <p className="text-gray-500 mb-6">
+          {!homeNode
+            ? "Please create a page with slug '/' in the admin panel."
+            : "This page is currently unpublished. Check back soon!"}
+        </p>
         <a href="/admin" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
           Go to Admin Panel
         </a>

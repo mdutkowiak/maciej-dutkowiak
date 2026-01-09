@@ -228,8 +228,17 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
         try {
             const { data, error } = await supabase.from('site_settings').select('*').eq('id', 'global').single();
             if (data) {
-                set({ siteSettings: data as SiteSettings });
-            } else if (error && error.code === 'PGRST116') {
+                const settings = data as SiteSettings;
+                if (!settings.buttons) {
+                    settings.buttons = {
+                        bgColor: '#2563eb',
+                        textColor: '#ffffff',
+                        borderRadius: 'md'
+                    };
+                }
+                set({ siteSettings: settings });
+            }
+            else if (error && error.code === 'PGRST116') {
                 console.warn('Site settings not found in DB');
             }
         } catch (e) {
@@ -313,7 +322,7 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
                 parent_id: parentId,
                 title: `${original.title} (Copy)`,
                 slug: newSlug,
-                status: original.status,
+                status: 'archived',
                 locked: original.locked,
                 template_id: original.template_id,
                 seo_metadata: original.seo_metadata,
@@ -358,7 +367,8 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
 
             const { error } = await supabase.from('sitemap').update({
                 parent_id: newParentId,
-                slug: newSlug
+                slug: newSlug,
+                status: 'archived'
             }).eq('id', id);
 
             if (error) throw error;

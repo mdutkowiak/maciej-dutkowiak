@@ -214,38 +214,105 @@ export default function GlobalSettingsPage() {
                 )}
 
                 {activeTab === 'theme' && (
-                    <div className="p-8 space-y-8 animate-in fade-in duration-300">
-                        <div className="max-w-md">
-                            <h3 className="font-bold text-lg mb-6">Global Design Tokens</h3>
-                            <p className="text-sm text-gray-500 mb-8">Set the overall look and feel for your entire website. These tokens apply to all pages.</p>
+                    <div className="p-8 animate-in fade-in duration-300">
+                        <div className="max-w-2xl">
+                            <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
+                                <Palette size={20} className="text-blue-600" />
+                                Global Design Tokens
+                            </h3>
+                            <p className="text-sm text-gray-500 mb-8">Set the overall look and feel for your buttons and interactive elements. These tokens apply site-wide.</p>
 
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Primary Brand Color</label>
-                                    <div className="flex gap-4 items-center">
-                                        <input
-                                            type="color"
-                                            className="w-12 h-12 rounded-lg cursor-pointer flex-shrink-0"
-                                        />
-                                        <div className="flex-1">
-                                            <input
-                                                type="text"
-                                                placeholder="#2563eb"
-                                                className="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-3 text-sm font-mono"
-                                            />
+                            <div className="space-y-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <section className="space-y-4">
+                                        <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300 uppercase tracking-wider">Button Styling</h4>
+                                        <div className="grid grid-cols-1 gap-6">
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Button Background</label>
+                                                <div className="flex gap-4 items-center">
+                                                    <input
+                                                        type="color"
+                                                        value={localSettings.buttons?.bgColor || '#2563eb'}
+                                                        onChange={(e) => setLocalSettings({
+                                                            ...localSettings,
+                                                            buttons: { ...localSettings.buttons, bgColor: e.target.value }
+                                                        })}
+                                                        className="w-12 h-12 rounded-lg cursor-pointer flex-shrink-0"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={localSettings.buttons?.bgColor || '#2563eb'}
+                                                        onChange={(e) => setLocalSettings({
+                                                            ...localSettings,
+                                                            buttons: { ...localSettings.buttons, bgColor: e.target.value }
+                                                        })}
+                                                        className="flex-1 bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-3 text-sm font-mono"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Button Text Color</label>
+                                                <div className="flex gap-4 items-center">
+                                                    <input
+                                                        type="color"
+                                                        value={localSettings.buttons?.textColor || '#ffffff'}
+                                                        onChange={(e) => setLocalSettings({
+                                                            ...localSettings,
+                                                            buttons: { ...localSettings.buttons, textColor: e.target.value }
+                                                        })}
+                                                        className="w-12 h-12 rounded-lg cursor-pointer flex-shrink-0"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={localSettings.buttons?.textColor || '#ffffff'}
+                                                        onChange={(e) => setLocalSettings({
+                                                            ...localSettings,
+                                                            buttons: { ...localSettings.buttons, textColor: e.target.value }
+                                                        })}
+                                                        className="flex-1 bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-3 text-sm font-mono"
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
+                                    </section>
 
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Border Radius</label>
-                                    <select className="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-3 text-sm outline-none">
-                                        <option value="none">Sharp (0px)</option>
-                                        <option value="sm">Small (4px)</option>
-                                        <option value="md">Medium (8px)</option>
-                                        <option value="lg">Large (12px)</option>
-                                        <option value="full">Round</option>
-                                    </select>
+                                    <section className="space-y-4">
+                                        <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300 uppercase tracking-wider">Shape & Radius</h4>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Border Radius</label>
+                                            <select
+                                                value={localSettings.buttons?.borderRadius || 'md'}
+                                                onChange={(e) => setLocalSettings({
+                                                    ...localSettings,
+                                                    buttons: { ...localSettings.buttons, borderRadius: e.target.value }
+                                                })}
+                                                className="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-3 text-sm outline-none"
+                                            >
+                                                <option value="none">Sharp (0px)</option>
+                                                <option value="sm">Small (4px)</option>
+                                                <option value="md">Medium (8px)</option>
+                                                <option value="lg">Large (12px)</option>
+                                                <option value="full">Round (999px)</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="mt-8 p-6 bg-gray-50 dark:bg-zinc-800/50 rounded-xl">
+                                            <p className="text-xs font-bold text-gray-400 uppercase mb-4">Live Preview</p>
+                                            <button
+                                                style={{
+                                                    backgroundColor: localSettings.buttons?.bgColor,
+                                                    color: localSettings.buttons?.textColor,
+                                                    borderRadius: localSettings.buttons?.borderRadius === 'none' ? '0' :
+                                                        localSettings.buttons?.borderRadius === 'sm' ? '4px' :
+                                                            localSettings.buttons?.borderRadius === 'md' ? '8px' :
+                                                                localSettings.buttons?.borderRadius === 'lg' ? '12px' : '9999px'
+                                                }}
+                                                className="px-6 py-2.5 font-bold text-sm shadow-md transition-all hover:opacity-90 active:scale-95"
+                                            >
+                                                Sample Button
+                                            </button>
+                                        </div>
+                                    </section>
                                 </div>
                             </div>
                         </div>

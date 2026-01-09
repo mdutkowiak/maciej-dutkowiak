@@ -11,6 +11,8 @@ interface SEOReportTableProps {
 }
 
 export default function SEOReportTable({ reports }: SEOReportTableProps) {
+    const [isAuditing, setIsAuditing] = React.useState(false);
+
     return (
         <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-zinc-800 flex justify-between items-center">
@@ -21,10 +23,31 @@ export default function SEOReportTable({ reports }: SEOReportTableProps) {
                     </span>
                 </h2>
                 <button
-                    onClick={() => reports.forEach(r => useSiteStore.getState().runSeoAudit(r.pageId))}
-                    className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    disabled={isAuditing}
+                    onClick={async () => {
+                        setIsAuditing(true);
+                        try {
+                            const store = useSiteStore.getState();
+                            for (const r of reports) {
+                                await store.runSeoAudit(r.pageId);
+                            }
+                        } finally {
+                            setIsAuditing(false);
+                        }
+                    }}
+                    style={{
+                        backgroundColor: useSiteStore.getState().siteSettings?.buttons?.bgColor || '#2563eb',
+                        color: useSiteStore.getState().siteSettings?.buttons?.textColor || '#ffffff',
+                        borderRadius: useSiteStore.getState().siteSettings?.buttons?.borderRadius === 'none' ? '0' :
+                            useSiteStore.getState().siteSettings?.buttons?.borderRadius === 'sm' ? '4px' :
+                                useSiteStore.getState().siteSettings?.buttons?.borderRadius === 'md' ? '8px' :
+                                    useSiteStore.getState().siteSettings?.buttons?.borderRadius === 'lg' ? '12px' : '9999px',
+                        opacity: isAuditing ? 0.7 : 1
+                    }}
+                    className={`flex items-center gap-2 text-sm px-4 py-2 font-bold shadow-sm transition-all ${!isAuditing ? 'hover:opacity-90 active:scale-95' : 'cursor-not-allowed'}`}
                 >
-                    <RefreshCw size={14} /> Run Global Audit
+                    <RefreshCw size={14} className={isAuditing ? 'animate-spin' : ''} />
+                    {isAuditing ? 'Auditing...' : 'Run Global Audit'}
                 </button>
             </div>
 

@@ -65,12 +65,20 @@ export default function DynamicPage() {
         );
     }
 
-    if (!currentNode) {
+    if (!currentNode || currentNode.status === 'archived') {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-10 text-center bg-white dark:bg-black">
-                <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-white">404</h1>
-                <h2 className="text-xl font-semibold mb-6 text-gray-500">Page not found</h2>
-                <p className="text-gray-400 mb-8 max-w-md">The page you are looking for doesn't exist or has been moved.</p>
+                <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-white">
+                    {!currentNode ? '404' : '🔒'}
+                </h1>
+                <h2 className="text-xl font-semibold mb-6 text-gray-500">
+                    {!currentNode ? 'Page not found' : 'Under Construction'}
+                </h2>
+                <p className="text-gray-400 mb-8 max-w-md">
+                    {!currentNode
+                        ? "The page you are looking for doesn't exist or has been moved."
+                        : "This page is currently unpublished. Check back soon!"}
+                </p>
                 <a href="/" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                     Return Home
                 </a>

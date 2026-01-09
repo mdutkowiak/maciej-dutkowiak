@@ -116,6 +116,11 @@ export interface SiteSettings {
     bgColor: string;
     textColor: string;
   };
+  buttons: {
+    bgColor: string;
+    textColor: string;
+    borderRadius: string;
+  };
 }
 
 export interface MediaFolder {

@@ -139,6 +139,7 @@ const buildTree = (items: any[], parentId: string | null = null): SitemapNode[] 
             lastModified: item.last_modified,
             templateId: item.template_id,
             pageData: item.page_data || {},
+            seo_metadata: item.seo_metadata || {},
             children: buildTree(items, item.id)
         }));
 };
@@ -531,6 +532,9 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
         });
 
         await supabase.from('sitemap').update({ last_modified: new Date().toISOString() }).eq('id', pageId);
+
+        // Refresh sitemap in store to reflect last_modified and any other changes
+        await get().initializeSite();
     },
 
     addComponent: (pageId, component) => {

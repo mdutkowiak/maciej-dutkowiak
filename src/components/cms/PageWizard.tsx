@@ -12,8 +12,23 @@ interface PageWizardProps {
 }
 
 export default function PageWizard({ isOpen, onClose, parentId }: PageWizardProps) {
-    const { templates, addPage } = useSiteStore();
+    const { templates, addPage, sitemap } = useSiteStore();
     const [step, setStep] = useState<1 | 2>(1);
+
+    // Find parent slug
+    const findNodeById = (nodes: any[], id: string): any => {
+        for (const node of nodes) {
+            if (node.id === id) return node;
+            if (node.children) {
+                const found = findNodeById(node.children, id);
+                if (found) return found;
+            }
+        }
+        return null;
+    };
+
+    const parentNode = parentId ? findNodeById(sitemap, parentId) : null;
+    const parentSlugPrefix = parentNode ? (parentNode.slug === '/' ? '/' : parentNode.slug + '/') : '/';
 
     // Form State
     const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -39,7 +54,7 @@ export default function PageWizard({ isOpen, onClose, parentId }: PageWizardProp
 
         await addPage(parentId, {
             title,
-            slug: slug.startsWith('/') ? slug : `/${slug}`,
+            slug: parentSlugPrefix + (slug.startsWith('/') ? slug.substring(1) : slug),
             templateId: selectedTemplateId,
         });
 
@@ -59,9 +74,10 @@ export default function PageWizard({ isOpen, onClose, parentId }: PageWizardProp
     const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         setTitle(val);
-        // Auto-generate slug if not manually edited (simple heuristic)
-        if (!slug || slug === '/' + title.toLowerCase().replace(/\s+/g, '-')) {
-            setSlug('/' + val.toLowerCase().replace(/\s+/g, '-'));
+        // Auto-generate slug if not manually edited
+        const generatedSlug = val.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        if (!slug || slug === title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')) {
+            setSlug(generatedSlug);
         }
     };
 
@@ -131,15 +147,18 @@ export default function PageWizard({ isOpen, onClose, parentId }: PageWizardProp
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Slug (URL)</label>
                                 <div className="flex items-center">
-                                    <span className="px-3 py-2 bg-gray-100 dark:bg-zinc-800 border border-r-0 border-gray-300 dark:border-zinc-700 rounded-l-lg text-gray-500 text-sm">/</span>
+                                    <span className="px-3 py-2 bg-gray-50 dark:bg-zinc-800 border border-r-0 border-gray-200 dark:border-zinc-700 rounded-l-lg text-gray-400 text-xs font-mono truncate max-w-[200px]" title={parentSlugPrefix}>
+                                        {parentSlugPrefix}
+                                    </span>
                                     <input
                                         type="text"
                                         className="w-full px-4 py-2 border border-gray-300 dark:border-zinc-700 rounded-r-lg bg-white dark:bg-zinc-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-sm"
                                         placeholder="my-awesome-page"
                                         value={slug.startsWith('/') ? slug.substring(1) : slug}
-                                        onChange={(e) => setSlug('/' + e.target.value)}
+                                        onChange={(e) => setSlug(e.target.value.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
                                     />
                                 </div>
+                                <p className="text-[10px] text-gray-400 mt-1 italic">Final URL: {parentSlugPrefix}{slug.startsWith('/') ? slug.substring(1) : slug}</p>
                             </div>
 
                             <div className="pt-4 border-t border-gray-100 dark:border-zinc-800">

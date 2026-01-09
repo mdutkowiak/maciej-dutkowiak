@@ -41,6 +41,7 @@ import { SitemapNode } from '@/store/types';
 import Tooltip from '@/components/ui/Tooltip';
 import PageWizard from './PageWizard';
 import PageSettingsModal from './PageSettingsModal';
+import NodePickerModal from './NodePickerModal';
 
 // --- Sortable Item Component ---
 interface SortableItemProps {
@@ -48,10 +49,11 @@ interface SortableItemProps {
     depth: number;
     onAddChild: (id: string) => void;
     onEditSettings: (node: SitemapNode) => void;
+    onPickerAction: (nodeId: string, action: 'move' | 'copy') => void;
     isDeletedMode?: boolean;
 }
 
-function SortableItem({ node, depth, onAddChild, onEditSettings, isDeletedMode = false }: SortableItemProps) {
+function SortableItem({ node, depth, onAddChild, onEditSettings, onPickerAction, isDeletedMode = false }: SortableItemProps) {
     const {
         attributes,
         listeners,
@@ -184,18 +186,32 @@ function SortableItem({ node, depth, onAddChild, onEditSettings, isDeletedMode =
                                             </button>
                                             <div className="h-px bg-gray-100 dark:bg-zinc-800 my-1" />
                                             <button
-                                                onClick={() => handleAction(() => copyPage(node.id))}
+                                                onClick={() => handleAction(() => onPickerAction(node.id, 'move'))}
+                                                className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-800 rounded"
+                                            >
+                                                <Move size={14} />
+                                                <span>Move to...</span>
+                                            </button>
+                                            <button
+                                                onClick={() => handleAction(() => onPickerAction(node.id, 'copy'))}
                                                 className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-800 rounded"
                                             >
                                                 <Copy size={14} />
-                                                <span>Copy</span>
+                                                <span>Copy to...</span>
+                                            </button>
+                                            <button
+                                                onClick={() => handleAction(() => copyPage(node.id))}
+                                                className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-800 rounded"
+                                            >
+                                                <Clipboard size={14} />
+                                                <span>Copy (Clipboard)</span>
                                             </button>
                                             <button
                                                 onClick={() => handleAction(() => pastePage(node.id))}
                                                 disabled={!copiedPageId}
                                                 className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-800 rounded disabled:opacity-50"
                                             >
-                                                <Clipboard size={14} />
+                                                <Plus size={14} />
                                                 <span>Paste Inside</span>
                                             </button>
                                         </>
@@ -220,11 +236,15 @@ function SortableItem({ node, depth, onAddChild, onEditSettings, isDeletedMode =
 
 // --- Main Tree Component ---
 export default function SitemapTree({ filter = 'active' }: { filter?: 'active' | 'deleted' }) {
-    const { sitemap, setSitemap, collapsedNodes } = useSiteStore();
+    const { sitemap, setSitemap, collapsedNodes, movePage, copyPage, pastePage } = useSiteStore();
     const [searchQuery, setSearchQuery] = useState('');
 
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
+    const [pickerTargetId, setPickerTargetId] = useState<string | null>(null);
+    const [pickerAction, setPickerAction] = useState<'move' | 'copy'>('move');
+
     const [wizardParentId, setWizardParentId] = useState<string | null>(null);
     const [settingsNode, setSelectedNode] = useState<SitemapNode | null>(null);
 
@@ -313,6 +333,11 @@ export default function SitemapTree({ filter = 'active' }: { filter?: 'active' |
                                 isDeletedMode={filter === 'deleted'}
                                 onAddChild={(id) => { setWizardParentId(id); setIsWizardOpen(true); }}
                                 onEditSettings={(n) => { setSelectedNode(n); setIsSettingsOpen(true); }}
+                                onPickerAction={(id, action) => {
+                                    setPickerTargetId(id);
+                                    setPickerAction(action);
+                                    setIsPickerOpen(true);
+                                }}
                             />
                         ))}
                     </SortableContext>
@@ -328,6 +353,25 @@ export default function SitemapTree({ filter = 'active' }: { filter?: 'active' |
             {/* Modals */}
             <PageWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} parentId={wizardParentId} />
             {settingsNode && <PageSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} node={settingsNode} />}
+            <NodePickerModal
+                isOpen={isPickerOpen}
+                onClose={() => setIsPickerOpen(false)}
+                title={pickerAction === 'move' ? 'Move Page to...' : 'Copy Page to...'}
+                excludeNodeId={pickerAction === 'move' ? pickerTargetId! : undefined}
+                onSelect={async (destId) => {
+                    if (pickerTargetId) {
+                        if (pickerAction === 'move') {
+                            await movePage(pickerTargetId, destId);
+                        } else {
+                            // Copy to destination
+                            // For copy, we set clipboard and then paste inside destId
+                            copyPage(pickerTargetId);
+                            await pastePage(destId);
+                        }
+                    }
+                    setIsPickerOpen(false);
+                }}
+            />
         </div>
     );
 }

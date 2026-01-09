@@ -219,18 +219,34 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
         if (!copiedPageId) return;
 
         try {
+            // Fetch parent slug for prefix
+            let parentSlug = '';
+            if (parentId) {
+                const { data: parent } = await supabase.from('sitemap').select('slug').eq('id', parentId).single();
+                parentSlug = parent?.slug === '/' ? '/' : (parent?.slug + '/');
+            } else {
+                parentSlug = '/';
+            }
+
             // Fetch original node
             const { data: original, error: fetchError } = await supabase.from('sitemap').select('*').eq('id', copiedPageId).single();
             if (fetchError || !original) throw fetchError;
 
+            // Simple slug generation for copy
+            const leaf = original.slug.split('/').pop() || 'copy';
+            const newSlug = `${parentSlug}${leaf}-copy-${Math.floor(Math.random() * 1000)}`;
+
             // Create new node
             const newId = crypto.randomUUID();
             const newPage = {
-                ...original,
                 id: newId,
-                parent_id: parentId, // Correct column name
+                parent_id: parentId,
                 title: `${original.title} (Copy)`,
-                slug: `${original.slug}-copy-${Math.floor(Math.random() * 1000)}`,
+                slug: newSlug,
+                status: original.status,
+                locked: original.locked,
+                template_id: original.template_id,
+                seo_metadata: original.seo_metadata,
                 last_modified: new Date().toISOString()
             };
 
@@ -241,8 +257,9 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             const { data: content, error: contentError } = await supabase.from('page_content').select('*').eq('page_id', copiedPageId).single();
             if (!contentError && content) {
                 await supabase.from('page_content').insert({
-                    ...content,
-                    page_id: newId
+                    page_id: newId,
+                    components: content.components,
+                    custom_code: content.custom_code
                 });
             }
 
@@ -254,7 +271,26 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
 
     movePage: async (id, newParentId) => {
         try {
-            const { error } = await supabase.from('sitemap').update({ parent_id: newParentId }).eq('id', id);
+            // Calculate new slug
+            let parentSlug = '';
+            if (newParentId) {
+                const { data: parent } = await supabase.from('sitemap').select('slug').eq('id', newParentId).single();
+                parentSlug = parent?.slug === '/' ? '/' : (parent?.slug + '/');
+            } else {
+                parentSlug = '/';
+            }
+
+            const { data: node } = await supabase.from('sitemap').select('slug').eq('id', id).single();
+            if (!node) return;
+
+            const leaf = node.slug.split('/').pop() || '';
+            const newSlug = `${parentSlug}${leaf}`;
+
+            const { error } = await supabase.from('sitemap').update({
+                parent_id: newParentId,
+                slug: newSlug
+            }).eq('id', id);
+
             if (error) throw error;
             await get().initializeSite();
         } catch (e) {

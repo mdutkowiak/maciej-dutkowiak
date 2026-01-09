@@ -50,6 +50,15 @@ interface SiteStore {
     siteSettings: SiteSettings | null;
     fetchSiteSettings: () => Promise<void>;
     updateSiteSettings: (settings: Partial<SiteSettings>) => Promise<void>;
+
+    // Sitemap UX & Actions
+    collapsedNodes: string[];
+    toggleNodeCollapse: (id: string) => Promise<void>;
+    fetchUserPreferences: () => Promise<void>;
+    copiedPageId: string | null;
+    copyPage: (id: string) => void;
+    pastePage: (parentId: string | null) => Promise<void>;
+    movePage: (id: string, newParentId: string | null) => Promise<void>;
 }
 
 const INITIAL_TEMPLATES: Template[] = [
@@ -89,7 +98,10 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
     initializeSite: async () => {
         set({ isLoading: true, errorMessage: null });
         try {
-            await get().fetchSiteSettings();
+            await Promise.all([
+                get().fetchSiteSettings(),
+                get().fetchUserPreferences()
+            ]);
             const { data, error } = await supabase.from('sitemap').select('*').order('title');
             if (error) throw error;
 
@@ -100,14 +112,7 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
                     // Optionally bootstrap DB here
                 }
                 set({ sitemap: tree });
-
-                // Set active page to Home if exists, otherwise first node
-                const homeNode = data.find((n: any) => n.slug === '/');
-                if (homeNode) {
-                    get().setActivePage(homeNode.id);
-                } else if (tree.length > 0) {
-                    get().setActivePage(tree[0].id);
-                }
+                // We no longer set activePageId by default
             }
         } catch (e: any) {
             console.error('Failed to init site:', e);
@@ -149,6 +154,87 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             await supabase.from('site_settings').upsert({ id: 'global', ...updated });
         } catch (e) {
             console.error('Error updating site settings:', e);
+        }
+    },
+
+    collapsedNodes: [],
+    copiedPageId: null,
+
+    fetchUserPreferences: async () => {
+        try {
+            const { data, error } = await supabase.from('user_preferences').select('collapsed_nodes').eq('user_id', 'anonymous').single();
+            if (data) {
+                set({ collapsedNodes: data.collapsed_nodes || [] });
+            }
+        } catch (e) {
+            console.error('Error fetching user preferences:', e);
+        }
+    },
+
+    toggleNodeCollapse: async (id) => {
+        const collapsed = get().collapsedNodes;
+        const newCollapsed = collapsed.includes(id)
+            ? collapsed.filter(nid => nid !== id)
+            : [...collapsed, id];
+
+        set({ collapsedNodes: newCollapsed });
+
+        try {
+            await supabase.from('user_preferences').upsert({ user_id: 'anonymous', collapsed_nodes: newCollapsed });
+        } catch (e) {
+            console.error('Error persisting collapse state:', e);
+        }
+    },
+
+    copyPage: (id) => {
+        set({ copiedPageId: id });
+    },
+
+    pastePage: async (parentId) => {
+        const { copiedPageId } = get();
+        if (!copiedPageId) return;
+
+        try {
+            // Fetch original node
+            const { data: original, error: fetchError } = await supabase.from('sitemap').select('*').eq('id', copiedPageId).single();
+            if (fetchError || !original) throw fetchError;
+
+            // Create new node
+            const newId = crypto.randomUUID();
+            const newPage = {
+                ...original,
+                id: newId,
+                parentId,
+                title: `${original.title} (Copy)`,
+                slug: `${original.slug}-copy-${Math.floor(Math.random() * 1000)}`,
+                lastModified: new Date().toISOString()
+            };
+
+            const { error: insertError } = await supabase.from('sitemap').insert(newPage);
+            if (insertError) throw insertError;
+
+            // Fetch page content and clone it
+            const { data: content, error: contentError } = await supabase.from('page_content').select('*').eq('page_id', copiedPageId).single();
+            if (!contentError && content) {
+                await supabase.from('page_content').insert({
+                    ...content,
+                    page_id: newId
+                });
+            }
+
+            await get().initializeSite();
+        } catch (e) {
+            console.error('Error pasting page:', e);
+        }
+    },
+
+    movePage: async (id, newParentId) => {
+        try {
+            const { error } = await supabase.from('sitemap').update({ parentId: newParentId }).eq('id', id);
+            if (error) throw error;
+            await get().initializeSite();
+        } catch (e) {
+            console.error('Error moving page:', e);
         }
     },
 

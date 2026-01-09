@@ -14,6 +14,8 @@ export async function mockCrawlPage(slug: string): Promise<SEOPageReport> {
         seoScore: isHealthy ? 'good' : (Math.random() > 0.5 ? 'warning' : 'critical'),
         missingTags: isHealthy ? [] : ['meta-description', 'h1'].filter(() => Math.random() > 0.5),
         brokenLinks: isHealthy ? 0 : Math.floor(Math.random() * 5),
+        missingAltCount: isHealthy ? 0 : Math.floor(Math.random() * 3),
+        securityIssues: isHealthy ? 0 : (Math.random() > 0.8 ? 1 : 0),
     };
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Image as ImageIcon, Code, Eye, FileText, Settings } from 'lucide-react';
+import { X, Image as ImageIcon, Code, Eye, FileText, Settings, AlertTriangle, CheckCircle2, Search, ExternalLink } from 'lucide-react';
 import { useSiteStore } from '@/store/useSiteStore';
 import MediaManager from '@/components/cms/media/MediaManager';
 
@@ -14,7 +14,9 @@ export default function PropertiesPanel() {
         updateComponent,
         getNodeById,
         templates,
-        updatePageData
+        updatePageData,
+        seoReports,
+        runSeoAudit
     } = useSiteStore();
 
     const [showMediaManager, setShowMediaManager] = useState(false);
@@ -120,6 +122,17 @@ export default function PropertiesPanel() {
                         </>
                     )}
 
+                    {/* Image Alt Validation */}
+                    {Object.entries(component.props).some(([k, v]) => typeof v === 'string' && (v.includes('.jpg') || v.includes('.png') || v.includes('.webp'))) && !component.props.alt && (
+                        <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-lg animate-pulse">
+                            <AlertTriangle size={14} className="text-amber-500 mt-0.5 shrink-0" />
+                            <div>
+                                <p className="text-[11px] font-bold text-amber-700 dark:text-amber-400">Missing Alt Text</p>
+                                <p className="text-[10px] text-amber-600 dark:text-amber-500">Add an 'alt' property to improve accessibility and SEO scores.</p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* RichText Fields */}
                     {component.type === 'RichText' && (
                         <div>
@@ -208,6 +221,83 @@ export default function PropertiesPanel() {
                     <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Active Template</p>
                     <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{template?.name || 'Standard'}</p>
                 </div>
+
+                {/* SEO Status Bar */}
+                {seoReports[activePageId] && (
+                    <div className={`p-3 rounded-lg border flex items-center justify-between ${seoReports[activePageId].seoScore === 'good' ? 'bg-green-50 border-green-100 text-green-700 dark:bg-green-900/10 dark:border-green-900/30 dark:text-green-400' :
+                            seoReports[activePageId].seoScore === 'critical' ? 'bg-red-50 border-red-100 text-red-700 dark:bg-red-900/10 dark:border-red-900/30 dark:text-red-400' :
+                                'bg-amber-50 border-amber-100 text-amber-700 dark:bg-amber-900/10 dark:border-amber-900/30 dark:text-amber-400'
+                        }`}>
+                        <div className="flex items-center gap-2">
+                            {seoReports[activePageId].seoScore === 'good' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                            <span className="text-xs font-bold uppercase tracking-tight">SEO Score: {seoReports[activePageId].seoScore}</span>
+                        </div>
+                        <button
+                            onClick={() => runSeoAudit(activePageId)}
+                            className="text-[10px] font-bold underline hover:no-underline"
+                        >
+                            Re-run Audit
+                        </button>
+                    </div>
+                )}
+
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold uppercase text-gray-400 tracking-wider">SEO & Metadata</h4>
+                        {!seoReports[activePageId] && (
+                            <button
+                                onClick={() => runSeoAudit(activePageId)}
+                                className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 dark:bg-zinc-800 text-[10px] font-bold text-gray-600 dark:text-gray-400 rounded hover:bg-blue-500 hover:text-white transition-all"
+                            >
+                                <Search size={10} />
+                                Run First Audit
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">SEO Title</label>
+                            <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-transparent text-sm"
+                                value={node.seo_metadata?.title || ''}
+                                onChange={(e) => useSiteStore.getState().updatePageProperties(activePageId, { seoTitle: e.target.value })}
+                                placeholder="Page title for Google..."
+                            />
+                            {(node.seo_metadata?.title?.length || 0) < 30 && (
+                                <p className="text-[10px] text-amber-500 mt-1">Title is too short (min 30 chars recommended)</p>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">SEO Description</label>
+                            <textarea
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-transparent text-sm h-20 resize-none"
+                                value={node.seo_metadata?.description || ''}
+                                onChange={(e) => useSiteStore.getState().updatePageProperties(activePageId, { seoDesc: e.target.value })}
+                                placeholder="Describe this page for search results..."
+                            />
+                        </div>
+
+                        {/* Search Preview Component */}
+                        <div className="mt-4">
+                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Google Preview</label>
+                            <div className="p-4 bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden">
+                                <div className="text-[12px] text-[#202124] dark:text-[#bdc1c6] truncate mb-0.5">
+                                    maciej-dutkowiak.vercel.app › {node.slug === '/' ? 'home' : node.slug.replace('/', '')}
+                                </div>
+                                <div className="text-[18px] text-[#1a0dab] dark:text-[#8ab4f8] hover:underline cursor-pointer leading-tight mb-1 truncate">
+                                    {node.seo_metadata?.title || node.title || 'Untitled Page'}
+                                </div>
+                                <div className="text-[14px] text-[#4d5156] dark:text-[#bdc1c6] line-clamp-2 leading-relaxed">
+                                    {node.seo_metadata?.description || 'Please provide a meta description to see how this page will appear in search results.'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="h-px bg-gray-100 dark:bg-zinc-800 my-6" />
 
                 {template?.fields && template.fields.length > 0 ? (
                     <div className="space-y-5">

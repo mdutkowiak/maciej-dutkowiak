@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { SitemapNode, ComponentData, GenericStatus, Template, SiteSettings } from './types';
+import { SitemapNode, ComponentData, GenericStatus, Template, SiteSettings, SEOPageReport } from './types';
 import { arrayMove } from '@dnd-kit/sortable';
 import { supabase } from '@/lib/supabase';
 
@@ -76,6 +76,11 @@ interface SiteStore {
     // Navigation & Modes (Phase 11)
     activeMode: 'content' | 'media' | 'settings' | 'users' | 'help';
     setActiveMode: (mode: 'content' | 'media' | 'settings' | 'users' | 'help') => void;
+
+    // SEO Auditor (Phase 15)
+    seoReports: Record<string, SEOPageReport>;
+    runSeoAudit: (pageId: string) => Promise<void>;
+    fetchAllSeoReports: () => Promise<void>;
 }
 
 const INITIAL_TEMPLATES: Template[] = [
@@ -155,6 +160,7 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
         totalViews: '0',
     },
     activeMode: 'content',
+    seoReports: {},
 
     initializeSite: async () => {
         set({ isLoading: true, errorMessage: null });
@@ -581,6 +587,111 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             }
         }));
         get().savePageContent(pageId);
+    },
+
+    fetchAllSeoReports: async () => {
+        const { data, error } = await supabase.from('seo_audits').select('*, sitemap(slug)');
+        if (error) {
+            console.error('Error fetching SEO reports:', error);
+            return;
+        }
+
+        const reports: Record<string, SEOPageReport> = {};
+        data?.forEach((r: any) => {
+            reports[r.page_id] = {
+                pageId: r.page_id,
+                path: r.sitemap?.slug || '/',
+                slug: r.sitemap?.slug || '/',
+                seoScore: r.score as any,
+                missingTags: r.missing_tags || [],
+                brokenLinks: r.broken_links_count || 0,
+                missingAltCount: r.missing_alt_count || 0,
+                securityIssues: r.security_issues_count || 0
+            };
+        });
+        set({ seoReports: reports });
+    },
+
+    runSeoAudit: async (pageId: string) => {
+        try {
+            // 1. Fetch data
+            const { data: node } = await supabase.from('sitemap').select('*').eq('id', pageId).single();
+            const { data: content } = await supabase.from('page_content').select('*').eq('page_id', pageId).single();
+
+            if (!node) return;
+
+            const components = content?.components || [];
+            const seo = node.seo_metadata || {};
+
+            // 2. Perform Checks
+            const missingTags: string[] = [];
+            let brokenLinks = 0;
+            let missingAltCount = 0;
+            let securityIssues = 0;
+            const headingHierarchy: string[] = [];
+
+            // Metadata Checks
+            if (!seo.title) missingTags.push('title');
+            if (!seo.description) missingTags.push('description');
+            if (!seo.ogImage) missingTags.push('og:image');
+
+            // Recursive Component Scan
+            const scan = (comps: any[]) => {
+                comps.forEach(c => {
+                    // Headings Check
+                    if (c.type === 'Heading' || (c.props?.tag && c.props.tag.startsWith('h'))) {
+                        headingHierarchy.push(c.props.tag || 'h2');
+                    }
+
+                    // Alt Text Check
+                    const hasImage = Object.values(c.props).some(v => typeof v === 'string' && (v.includes('.jpg') || v.includes('.png') || v.includes('.webp')));
+                    if (hasImage && !c.props.alt) {
+                        missingAltCount++;
+                    }
+
+                    // Links & Security Check
+                    Object.entries(c.props).forEach(([key, val]) => {
+                        if (typeof val === 'string' && (key === 'href' || key === 'url' || key.toLowerCase().includes('link'))) {
+                            if (val.startsWith('http')) {
+                                if (c.props.target === '_blank' && !c.props.rel?.includes('noopener')) {
+                                    securityIssues++;
+                                }
+                            } else if (val.startsWith('/')) {
+                                const exists = get().sitemap.some(n => n.slug === val);
+                                if (!exists && val !== '/') brokenLinks++;
+                            }
+                        }
+                    });
+
+                    if (c.children) scan(c.children);
+                });
+            };
+            scan(components);
+
+            // Heading Hierarchy Logic
+            const h1Count = headingHierarchy.filter(h => h.toLowerCase() === 'h1').length;
+            if (h1Count !== 1) missingTags.push('h1-unique');
+
+            // 3. Calculate Score
+            let score: 'good' | 'warning' | 'critical' = 'good';
+            if (missingTags.length > 1 || brokenLinks > 0 || securityIssues > 0 || missingAltCount > 0) score = 'warning';
+            if (missingTags.includes('title') || brokenLinks > 2) score = 'critical';
+
+            // 4. Save Results
+            await supabase.from('seo_audits').upsert({
+                page_id: pageId,
+                score,
+                missing_tags: missingTags,
+                broken_links_count: brokenLinks,
+                security_issues_count: securityIssues,
+                missing_alt_count: missingAltCount,
+                last_run: new Date().toISOString()
+            });
+
+            await get().fetchAllSeoReports();
+        } catch (e) {
+            console.error('SEO Audit failed:', e);
+        }
     },
 
     saveTemplate: (name, pageId) => set((state) => {

@@ -110,8 +110,8 @@ export default function VisualEditorPage() {
                         <EditorCanvas />
                     </DevicePreviewWrapper>
 
-                    {/* Toolbar */}
-                    <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
+                    {/* Toolbar - lowered z-index to stay behind modals */}
+                    <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
                         <button
                             onClick={handlePreview}
                             className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-200 rounded-lg shadow-sm border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
@@ -129,8 +129,8 @@ export default function VisualEditorPage() {
                         </button>
                     </div>
 
-                    {/* Floating Action Buttons */}
-                    <div className="absolute bottom-6 right-6 z-40">
+                    {/* Floating Action Buttons - lowered z-index */}
+                    <div className="absolute bottom-6 right-6 z-20">
                         <button
                             onClick={() => setShowCodePanel(!showCodePanel)}
                             className="flex items-center gap-2 px-4 py-3 bg-gray-900 text-white rounded-full shadow-xl hover:bg-black transition-transform hover:scale-105"

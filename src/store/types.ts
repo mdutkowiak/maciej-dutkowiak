@@ -46,6 +46,7 @@ export interface SitemapNode {
   locked?: boolean;
   isDeleted?: boolean;
   pageData?: Record<string, any>; // Phase 14: Dynamic Document Data
+  seo_metadata?: SEOData;
 }
 
 export interface TemplateField {
@@ -79,6 +80,8 @@ export interface SEOPageReport {
   seoScore: 'good' | 'warning' | 'critical';
   missingTags: string[]; // e.g., ['h1', 'alt', 'meta-description']
   brokenLinks: number;
+  missingAltCount: number;
+  securityIssues: number;
 }
 
 export interface MenuItem {

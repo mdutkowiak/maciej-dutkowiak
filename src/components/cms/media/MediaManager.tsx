@@ -127,9 +127,14 @@ export default function MediaManager({ onSelect, onClose, embedded = false }: Me
             });
 
             await fetchData();
-        } catch (e) {
+        } catch (e: any) {
             console.error('Upload failed:', e);
-            alert('Upload failed. Database schema might be missing.');
+            const msg = e.message || 'Unknown error';
+            if (msg.toLowerCase().includes('bucket')) {
+                alert(`Upload failed: Storage bucket 'media' not found. Please create it in Supabase Storage.`);
+            } else {
+                alert(`Upload failed: ${msg}. Check if 'assets' table exists and RLS policies are set.`);
+            }
         } finally {
             setIsUploading(false);
         }

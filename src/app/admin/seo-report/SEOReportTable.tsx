@@ -1,8 +1,10 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, CheckCircle, Smartphone, ExternalLink, Edit } from 'lucide-react';
+import { AlertCircle, CheckCircle, Smartphone, ExternalLink, Edit, RefreshCw, ShieldAlert, Image as ImageIcon } from 'lucide-react';
 import { SEOPageReport } from '@/store/types';
+import { useSiteStore } from '@/store/useSiteStore';
+import Link from 'next/link';
 
 interface SEOReportTableProps {
     reports: SEOPageReport[];
@@ -18,8 +20,11 @@ export default function SEOReportTable({ reports }: SEOReportTableProps) {
                         {reports.length} Pages
                     </span>
                 </h2>
-                <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                    Run New Audit
+                <button
+                    onClick={() => reports.forEach(r => useSiteStore.getState().runSeoAudit(r.pageId))}
+                    className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                    <RefreshCw size={14} /> Run Global Audit
                 </button>
             </div>
 
@@ -32,6 +37,8 @@ export default function SEOReportTable({ reports }: SEOReportTableProps) {
                             <th className="px-6 py-3">Status</th>
                             <th className="px-6 py-3">Issues Found</th>
                             <th className="px-6 py-3 text-center">404 Links</th>
+                            <th className="px-6 py-3 text-center">Alt Tags</th>
+                            <th className="px-6 py-3 text-center">Security</th>
                             <th className="px-6 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -39,8 +46,7 @@ export default function SEOReportTable({ reports }: SEOReportTableProps) {
                         {reports.map((report) => (
                             <tr key={report.pageId} className="hover:bg-gray-50 dark:hover:bg-zinc-800/30 transition-colors">
                                 <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                                    {/* Mock name, in real app derive from ID or passed prop */}
-                                    Page {report.pageId}
+                                    {useSiteStore.getState().getNodeById(report.pageId)?.title || report.pageId}
                                 </td>
                                 <td className="px-6 py-4 font-mono text-xs text-blue-600 dark:text-blue-400">
                                     {report.slug}
@@ -84,24 +90,45 @@ export default function SEOReportTable({ reports }: SEOReportTableProps) {
                                         <span className="text-gray-400">0</span>
                                     )}
                                 </td>
+                                <td className="px-6 py-4 text-center">
+                                    {report.missingAltCount > 0 ? (
+                                        <div className="flex items-center justify-center gap-1 text-amber-500 font-bold">
+                                            <ImageIcon size={14} /> {report.missingAltCount}
+                                        </div>
+                                    ) : (
+                                        <span className="text-gray-400">0</span>
+                                    )}
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                    {report.securityIssues > 0 ? (
+                                        <div className="flex items-center justify-center gap-1 text-red-500 font-bold">
+                                            <ShieldAlert size={14} /> {report.securityIssues}
+                                        </div>
+                                    ) : (
+                                        <span className="text-gray-400">0</span>
+                                    )}
+                                </td>
                                 <td className="px-6 py-4 text-right">
-                                    <button className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors dark:hover:bg-blue-900/20 dark:hover:text-blue-400">
+                                    <button
+                                        onClick={() => useSiteStore.getState().runSeoAudit(report.pageId)}
+                                        className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors dark:hover:bg-blue-900/20 dark:hover:text-blue-400 mr-1"
+                                    >
+                                        <RefreshCw size={16} />
+                                    </button>
+                                    <Link href={`/admin/editor?page=${report.pageId}`} className="inline-block p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors dark:hover:bg-blue-900/20 dark:hover:text-blue-400">
                                         <Edit size={16} />
-                                    </button>
-                                    <button className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors dark:hover:bg-zinc-800 dark:hover:text-gray-300">
-                                        <ExternalLink size={16} />
-                                    </button>
+                                    </Link>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
+                {reports.length === 0 && (
+                    <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                        No reports found. Run an audit to see results.
+                    </div>
+                )}
             </div>
-            {reports.length === 0 && (
-                <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                    No pages found to audit.
-                </div>
-            )}
         </div>
     );
 }

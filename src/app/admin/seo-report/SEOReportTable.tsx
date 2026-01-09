@@ -38,7 +38,8 @@ export default function SEOReportTable({ reports }: SEOReportTableProps) {
                             <th className="px-6 py-3">Issues Found</th>
                             <th className="px-6 py-3 text-center">404 Links</th>
                             <th className="px-6 py-3 text-center">Alt Tags</th>
-                            <th className="px-6 py-3 text-center">Security</th>
+                            <th className="px-6 py-3 text-center">Read Time</th>
+                            <th className="px-6 py-3 text-center">Word Count</th>
                             <th className="px-6 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -100,13 +101,10 @@ export default function SEOReportTable({ reports }: SEOReportTableProps) {
                                     )}
                                 </td>
                                 <td className="px-6 py-4 text-center">
-                                    {report.securityIssues > 0 ? (
-                                        <div className="flex items-center justify-center gap-1 text-red-500 font-bold">
-                                            <ShieldAlert size={14} /> {report.securityIssues}
-                                        </div>
-                                    ) : (
-                                        <span className="text-gray-400">0</span>
-                                    )}
+                                    <span className="text-gray-600 dark:text-gray-300 font-medium">{report.readingTime}m</span>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                    <span className="text-gray-600 dark:text-gray-300 font-medium">{report.wordCount}</span>
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <button

@@ -82,6 +82,9 @@ export interface SEOPageReport {
   brokenLinks: number;
   missingAltCount: number;
   securityIssues: number;
+  wordCount?: number;
+  readingTime?: number;
+  keywordDensity?: Record<string, number>;
 }
 
 export interface MenuItem {

@@ -22,6 +22,7 @@ export default function PropertiesPanel() {
     const [showMediaManager, setShowMediaManager] = useState(false);
     const [activeImageField, setActiveImageField] = useState<string | null>(null);
     const [isCodeView, setIsCodeView] = useState(false);
+    const [socialPreviewMode, setSocialPreviewMode] = useState<'facebook' | 'x' | 'linkedin'>('facebook');
 
     if (!activePageId) return null;
 
@@ -360,20 +361,113 @@ export default function PropertiesPanel() {
                                 placeholder="Describe this page for search results..."
                             />
                         </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">Target Keywords (Comma separated)</label>
+                            <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-transparent text-sm"
+                                value={node.seo_metadata?.keywords?.join(', ') || ''}
+                                onChange={(e) => useSiteStore.getState().updatePageProperties(activePageId, {
+                                    keywords: e.target.value.split(',').map(s => s.trim()).filter(s => s.length > 0)
+                                })}
+                                placeholder="e.g. ecommerce, cms, react"
+                            />
+                        </div>
 
-                        {/* Search Preview Component */}
+                        {/* Search & Social Preview Component */}
                         <div className="mt-4">
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Google Preview</label>
-                            <div className="p-4 bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden">
-                                <div className="text-[12px] text-[#202124] dark:text-[#bdc1c6] truncate mb-0.5">
-                                    maciej-dutkowiak.vercel.app › {node.slug === '/' ? 'home' : node.slug.replace('/', '')}
+                            <div className="flex items-center justify-between mb-3 border-b border-gray-100 dark:border-zinc-800 pb-2">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Previews</label>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setSocialPreviewMode('facebook')}
+                                        className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${socialPreviewMode === 'facebook' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                                    >FB</button>
+                                    <button
+                                        onClick={() => setSocialPreviewMode('x')}
+                                        className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${socialPreviewMode === 'x' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                                    >X</button>
+                                    <button
+                                        onClick={() => setSocialPreviewMode('linkedin')}
+                                        className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${socialPreviewMode === 'linkedin' ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                                    >IN</button>
                                 </div>
-                                <div className="text-[18px] text-[#1a0dab] dark:text-[#8ab4f8] hover:underline cursor-pointer leading-tight mb-1 truncate">
-                                    {node.seo_metadata?.title || node.title || 'Untitled Page'}
+                            </div>
+
+                            {/* Google Preview */}
+                            <div className="mb-6">
+                                <p className="text-[10px] font-bold text-gray-400 mb-2 uppercase">Google</p>
+                                <div className="p-4 bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden">
+                                    <div className="text-[12px] text-[#202124] dark:text-[#bdc1c6] truncate mb-0.5">
+                                        maciej-dutkowiak.vercel.app › {node.slug === '/' ? 'home' : node.slug.replace('/', '')}
+                                    </div>
+                                    <div className="text-[18px] text-[#1a0dab] dark:text-[#8ab4f8] hover:underline cursor-pointer leading-tight mb-1 truncate">
+                                        {node.seo_metadata?.title || node.title || 'Untitled Page'}
+                                    </div>
+                                    <div className="text-[14px] text-[#4d5156] dark:text-[#bdc1c6] line-clamp-2 leading-relaxed">
+                                        {node.seo_metadata?.description || 'Please provide a meta description to see how this page will appear in search results.'}
+                                    </div>
                                 </div>
-                                <div className="text-[14px] text-[#4d5156] dark:text-[#bdc1c6] line-clamp-2 leading-relaxed">
-                                    {node.seo_metadata?.description || 'Please provide a meta description to see how this page will appear in search results.'}
-                                </div>
+                            </div>
+
+                            {/* Social Preview */}
+                            <div>
+                                <p className="text-[10px] font-bold text-gray-400 mb-2 uppercase">{socialPreviewMode}</p>
+                                {socialPreviewMode === 'facebook' ? (
+                                    <div className="border border-gray-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-white dark:bg-zinc-900 shadow-sm">
+                                        <div className="aspect-[1.91/1] bg-gray-100 dark:bg-zinc-800 border-b border-gray-100 dark:border-zinc-800 relative flex items-center justify-center">
+                                            {node.seo_metadata?.ogImage ? (
+                                                <img src={node.seo_metadata.ogImage} className="w-full h-full object-cover" alt="OG" />
+                                            ) : (
+                                                <ImageIcon className="text-gray-400" size={32} />
+                                            )}
+                                        </div>
+                                        <div className="p-3">
+                                            <p className="text-[11px] text-gray-500 uppercase font-medium">maciej-dutkowiak.vercel.app</p>
+                                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-1 line-clamp-1">
+                                                {node.seo_metadata?.title || node.title}
+                                            </p>
+                                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 leading-tight">
+                                                {node.seo_metadata?.description || 'No description provided.'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : socialPreviewMode === 'x' ? (
+                                    <div className="border border-gray-200 dark:border-zinc-800 rounded-2xl overflow-hidden bg-white dark:bg-zinc-950 shadow-sm">
+                                        <div className="aspect-[1.91/1] bg-gray-100 dark:bg-zinc-800 relative">
+                                            {node.seo_metadata?.ogImage ? (
+                                                <img src={node.seo_metadata.ogImage} className="w-full h-full object-cover" alt="OG" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center"><ImageIcon className="text-gray-400" size={32} /></div>
+                                            )}
+                                            <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-0.5 rounded text-[10px] text-white">maciej-dutkowiak.vercel.app</div>
+                                        </div>
+                                        <div className="p-3 border-t border-gray-100 dark:border-zinc-800">
+                                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 line-clamp-1">
+                                                {node.seo_metadata?.title || node.title}
+                                            </p>
+                                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 leading-tight">
+                                                {node.seo_metadata?.description || 'No description provided.'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="border border-gray-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-white dark:bg-zinc-900 shadow-sm">
+                                        <div className="aspect-[1.91/1] bg-gray-100 dark:bg-zinc-800 relative">
+                                            {node.seo_metadata?.ogImage ? (
+                                                <img src={node.seo_metadata.ogImage} className="w-full h-full object-cover" alt="OG" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center"><ImageIcon className="text-gray-400" size={32} /></div>
+                                            )}
+                                        </div>
+                                        <div className="p-3 bg-gray-50 dark:bg-zinc-800/50">
+                                            <p className="text-xs font-bold text-gray-900 dark:text-gray-100 line-clamp-1">
+                                                {node.seo_metadata?.title || node.title}
+                                            </p>
+                                            <p className="text-[11px] text-gray-500 mt-0.5">maciej-dutkowiak.vercel.app</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

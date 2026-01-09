@@ -61,7 +61,7 @@ interface SiteStore {
     copyPage: (id: string) => void;
     pastePage: (parentId: string | null) => Promise<void>;
     movePage: (id: string, newParentId: string | null) => Promise<void>;
-    updatePageProperties: (id: string, properties: { title?: string; slug?: string; seoTitle?: string; seoDesc?: string }) => Promise<{ success: boolean; error?: string }>;
+    updatePageProperties: (id: string, properties: { title?: string; slug?: string; seoTitle?: string; seoDesc?: string; keywords?: string[] }) => Promise<{ success: boolean; error?: string }>;
     updatePageData: (id: string, data: Record<string, any>) => Promise<void>;
 
     // Dashboard Stats
@@ -396,11 +396,12 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             };
             if (props.title) updateData.title = props.title;
             if (props.slug) updateData.slug = props.slug;
-            if (props.seoTitle || props.seoDesc) {
+            if (props.seoTitle || props.seoDesc || props.keywords) {
                 updateData.seo_metadata = {
                     ...(current?.seo_metadata || {}),
                     title: props.seoTitle ?? current?.seo_metadata?.title,
-                    description: props.seoDesc ?? current?.seo_metadata?.description
+                    description: props.seoDesc ?? current?.seo_metadata?.description,
+                    keywords: props.keywords ?? current?.seo_metadata?.keywords
                 };
             }
 
@@ -616,7 +617,10 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
                 missingTags: r.missing_tags || [],
                 brokenLinks: r.broken_links_count || 0,
                 missingAltCount: r.missing_alt_count || 0,
-                securityIssues: r.security_issues_count || 0
+                securityIssues: r.security_issues_count || 0,
+                wordCount: r.word_count || 0,
+                readingTime: r.reading_time || 0,
+                keywordDensity: r.keyword_density || {}
             };
         });
         set({ seoReports: reports });
@@ -638,7 +642,9 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             let brokenLinks = 0;
             let missingAltCount = 0;
             let securityIssues = 0;
+            let totalWordCount = 0;
             const headingHierarchy: string[] = [];
+            const pageText: string[] = [];
 
             // Metadata Checks
             if (!seo.title) missingTags.push('title');
@@ -673,6 +679,16 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
                         }
                     });
 
+                    if (c.props.content) {
+                        const text = String(c.props.content).replace(/<[^>]*>/g, ' ');
+                        pageText.push(text);
+                        totalWordCount += text.split(/\s+/).filter(w => w.length > 0).length;
+                    }
+                    if (c.props.title) {
+                        pageText.push(c.props.title);
+                        totalWordCount += String(c.props.title).split(/\s+/).filter(w => w.length > 0).length;
+                    }
+
                     if (c.children) scan(c.children);
                 });
             };
@@ -681,6 +697,21 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             // Heading Hierarchy Logic
             const h1Count = headingHierarchy.filter(h => h.toLowerCase() === 'h1').length;
             if (h1Count !== 1) missingTags.push('h1-unique');
+
+            // Keyword Density (Mock logic based on seo_metadata.keywords)
+            const keywordDensity: Record<string, number> = {};
+            const targetKeywords = seo.keywords || [];
+            if (targetKeywords.length > 0) {
+                const combinedText = pageText.join(' ').toLowerCase();
+                targetKeywords.forEach((kw: string) => {
+                    const regex = new RegExp(`\\b${kw.toLowerCase()}\\b`, 'g');
+                    const count = (combinedText.match(regex) || []).length;
+                    keywordDensity[kw] = count;
+                });
+            }
+
+            // Reading Time (Avg 200 words per minute)
+            const readingTime = Math.ceil(totalWordCount / 200);
 
             // 3. Calculate Score
             let score: 'good' | 'warning' | 'critical' = 'good';
@@ -695,6 +726,9 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
                 broken_links_count: brokenLinks,
                 security_issues_count: securityIssues,
                 missing_alt_count: missingAltCount,
+                word_count: totalWordCount,
+                reading_time: readingTime,
+                keyword_density: keywordDensity,
                 last_run: new Date().toISOString()
             });
 

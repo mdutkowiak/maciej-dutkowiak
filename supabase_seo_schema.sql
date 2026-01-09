@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS public.seo_audits (
     missing_alt_count INTEGER DEFAULT 0,
     heading_errors JSONB DEFAULT '[]'::jsonb,
     keyword_density JSONB DEFAULT '{}'::jsonb,
+    word_count INTEGER DEFAULT 0,
+    reading_time INTEGER DEFAULT 0,
     last_run TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(page_id)
 );

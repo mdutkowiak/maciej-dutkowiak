@@ -157,7 +157,6 @@ function SortableItem({ node, depth, onAddChild, onEditSettings, isDeletedMode =
                         <>
                             <div className="fixed inset-0 z-[60]" onClick={() => setIsMenuOpen(false)} />
                             <div className="absolute top-full right-0 z-[70] min-w-[180px] bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg shadow-xl py-1 animate-in fade-in zoom-in-95 duration-100 mt-1">
-                                {/* Actions */}
                                 <div className="flex flex-col p-1">
                                     {node.isDeleted ? (
                                         <button
@@ -215,24 +214,15 @@ function SortableItem({ node, depth, onAddChild, onEditSettings, isDeletedMode =
                     )}
                 </div>
             </div>
-
-            {hasChildren && !isCollapsed && (
-                <div className="ml-2 border-l border-gray-100 dark:border-zinc-800">
-                    {node.children.map(child => (
-                        <SortableItem key={child.id} node={child} depth={depth + 1} onAddChild={onAddChild} onEditSettings={onEditSettings} isDeletedMode={isDeletedMode} />
-                    ))}
-                </div>
-            )}
         </div>
     );
 }
 
 // --- Main Tree Component ---
 export default function SitemapTree({ filter = 'active' }: { filter?: 'active' | 'deleted' }) {
-    const { sitemap, setSitemap } = useSiteStore();
+    const { sitemap, setSitemap, collapsedNodes } = useSiteStore();
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Modal States
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [wizardParentId, setWizardParentId] = useState<string | null>(null);
@@ -245,33 +235,40 @@ export default function SitemapTree({ filter = 'active' }: { filter?: 'active' |
         })
     );
 
-    // Helper to flatten the sitemap and apply the deleted filter
+    // Flat list for rendering and DnD
     const flatNodes = useMemo(() => {
         const flatten = (nodes: SitemapNode[]): SitemapNode[] => {
             return nodes.reduce((acc: SitemapNode[], node) => {
-                // Filter logic
                 const matchesFilter = filter === 'deleted' ? node.isDeleted : !node.isDeleted;
-                if (matchesFilter) acc.push(node);
+                const isCollapsed = collapsedNodes.includes(node.id);
 
-                if (node.children && node.children.length > 0) {
+                if (matchesFilter) {
+                    acc.push(node);
+                }
+
+                // Only recurse if the node is NOT collapsed AND matches the filter OR is a parent of matching nodes
+                // In "deleted" mode, we usually don't care about parent collapse in the same way, but let's keep consistency.
+                if (node.children && node.children.length > 0 && !isCollapsed) {
                     acc.push(...flatten(node.children));
                 }
                 return acc;
             }, []);
         };
         return flatten(sitemap);
-    }, [sitemap, filter]);
+    }, [sitemap, filter, collapsedNodes]);
 
-    // Apply search query to the filtered flat list
     const filteredNodes = useMemo(() => {
         if (!searchQuery) return flatNodes;
         return flatNodes.filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase()));
     }, [flatNodes, searchQuery]);
 
     function handleDragEnd(event: DragEndEvent) {
-        if (searchQuery || filter === 'deleted') return; // Disable drag-and-drop when searching or in deleted mode
+        if (searchQuery || filter === 'deleted') return;
         const { active, over } = event;
         if (active && over && active.id !== over.id) {
+            // For MVP: simple reordering of the top level or current siblings would be complex in a flat view.
+            // dnd-kit's arrayMove works best on the array we're actually sorting.
+            // If we want real tree reordering, we'd need to update the nested structure.
             const oldIndex = sitemap.findIndex((i) => i.id === active.id);
             const newIndex = sitemap.findIndex((i) => i.id === over.id);
             if (oldIndex !== -1 && newIndex !== -1) {
@@ -280,9 +277,18 @@ export default function SitemapTree({ filter = 'active' }: { filter?: 'active' |
         }
     }
 
+    // Helper to find real depth for display
+    const findDepth = (nodes: SitemapNode[], id: string, depth = 0): number | null => {
+        for (const n of nodes) {
+            if (n.id === id) return depth;
+            const d = n.children ? findDepth(n.children, id, depth + 1) : null;
+            if (d !== null) return d;
+        }
+        return null;
+    };
+
     return (
         <div className="flex flex-col h-full bg-white dark:bg-zinc-900 min-h-0 overflow-hidden">
-            {/* Search Bar */}
             <div className="px-4 py-3 bg-gray-50/50 dark:bg-zinc-900/50 border-b border-gray-100 dark:border-zinc-800">
                 <div className="relative">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -296,46 +302,19 @@ export default function SitemapTree({ filter = 'active' }: { filter?: 'active' |
                 </div>
             </div>
 
-            {/* Tree Area */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-                <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
-                >
-                    <SortableContext
-                        items={filteredNodes.map(n => n.id)}
-                        strategy={verticalListSortingStrategy}
-                    >
-                        {filteredNodes.map((node) => {
-                            // We need to calculate real depth for the flat list display
-                            const findDepth = (nodes: SitemapNode[], id: string, depth = 0): number | null => {
-                                for (const n of nodes) {
-                                    if (n.id === id) return depth;
-                                    const d = n.children ? findDepth(n.children, id, depth + 1) : null;
-                                    if (d !== null) return d;
-                                }
-                                return null;
-                            };
-                            const depth = findDepth(sitemap, node.id) || 0;
-
-                            return (
-                                <SortableItem
-                                    key={node.id}
-                                    node={node}
-                                    depth={depth}
-                                    isDeletedMode={filter === 'deleted'}
-                                    onAddChild={(id) => {
-                                        setWizardParentId(id);
-                                        setIsWizardOpen(true);
-                                    }}
-                                    onEditSettings={(node) => {
-                                        setSelectedNode(node);
-                                        setIsSettingsOpen(true);
-                                    }}
-                                />
-                            );
-                        })}
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={filteredNodes.map(n => n.id)} strategy={verticalListSortingStrategy}>
+                        {filteredNodes.map((node) => (
+                            <SortableItem
+                                key={node.id}
+                                node={node}
+                                depth={findDepth(sitemap, node.id) || 0}
+                                isDeletedMode={filter === 'deleted'}
+                                onAddChild={(id) => { setWizardParentId(id); setIsWizardOpen(true); }}
+                                onEditSettings={(n) => { setSelectedNode(n); setIsSettingsOpen(true); }}
+                            />
+                        ))}
                     </SortableContext>
                 </DndContext>
 
@@ -347,18 +326,8 @@ export default function SitemapTree({ filter = 'active' }: { filter?: 'active' |
             </div>
 
             {/* Modals */}
-            <PageWizard
-                isOpen={isWizardOpen}
-                onClose={() => setIsWizardOpen(false)}
-                parentId={wizardParentId}
-            />
-            {settingsNode && (
-                <PageSettingsModal
-                    isOpen={isSettingsOpen}
-                    onClose={() => setIsSettingsOpen(false)}
-                    node={settingsNode}
-                />
-            )}
+            <PageWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} parentId={wizardParentId} />
+            {settingsNode && <PageSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} node={settingsNode} />}
         </div>
     );
 }

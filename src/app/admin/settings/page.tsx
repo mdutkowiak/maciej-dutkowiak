@@ -215,105 +215,292 @@ export default function GlobalSettingsPage() {
 
                 {activeTab === 'theme' && (
                     <div className="p-8 animate-in fade-in duration-300">
-                        <div className="max-w-2xl">
-                            <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
+                        <div className="max-w-4xl">
+                            <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
                                 <Palette size={20} className="text-blue-600" />
                                 Global Design Tokens
                             </h3>
-                            <p className="text-sm text-gray-500 mb-8">Set the overall look and feel for your buttons and interactive elements. These tokens apply site-wide.</p>
+                            <p className="text-sm text-gray-500 mb-8">Define your site's visual identity. These CSS variables apply across all pages and components.</p>
 
-                            <div className="space-y-8">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <section className="space-y-4">
-                                        <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300 uppercase tracking-wider">Button Styling</h4>
-                                        <div className="grid grid-cols-1 gap-6">
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Button Background</label>
-                                                <div className="flex gap-4 items-center">
+                            <div className="space-y-10">
+                                {/* Color Palette */}
+                                <section>
+                                    <h4 className="font-bold text-sm text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4 border-b border-gray-200 dark:border-zinc-700 pb-2">Color Palette</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        {[
+                                            { key: 'primary', label: 'Primary', default: '#2563eb' },
+                                            { key: 'secondary', label: 'Secondary', default: '#64748b' },
+                                            { key: 'accent', label: 'Accent', default: '#f59e0b' },
+                                            { key: 'background', label: 'Background', default: '#ffffff' },
+                                            { key: 'surface', label: 'Surface', default: '#f8fafc' },
+                                            { key: 'textPrimary', label: 'Text Primary', default: '#1e293b' },
+                                            { key: 'textSecondary', label: 'Text Secondary', default: '#64748b' },
+                                            { key: 'border', label: 'Border', default: '#e2e8f0' },
+                                        ].map(({ key, label, default: def }) => (
+                                            <div key={key}>
+                                                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">{label}</label>
+                                                <div className="flex gap-2 items-center">
                                                     <input
                                                         type="color"
-                                                        value={localSettings.buttons?.bgColor || '#2563eb'}
+                                                        value={(localSettings.theme?.colors as any)?.[key] || def}
                                                         onChange={(e) => setLocalSettings({
                                                             ...localSettings,
-                                                            buttons: { ...localSettings.buttons, bgColor: e.target.value }
+                                                            theme: {
+                                                                ...localSettings.theme,
+                                                                colors: { ...(localSettings.theme?.colors || {}), [key]: e.target.value }
+                                                            } as any
                                                         })}
-                                                        className="w-12 h-12 rounded-lg cursor-pointer flex-shrink-0"
+                                                        className="w-10 h-10 rounded-lg cursor-pointer flex-shrink-0"
                                                     />
                                                     <input
                                                         type="text"
-                                                        value={localSettings.buttons?.bgColor || '#2563eb'}
+                                                        value={(localSettings.theme?.colors as any)?.[key] || def}
                                                         onChange={(e) => setLocalSettings({
                                                             ...localSettings,
-                                                            buttons: { ...localSettings.buttons, bgColor: e.target.value }
+                                                            theme: {
+                                                                ...localSettings.theme,
+                                                                colors: { ...(localSettings.theme?.colors || {}), [key]: e.target.value }
+                                                            } as any
                                                         })}
-                                                        className="flex-1 bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-3 text-sm font-mono"
+                                                        className="flex-1 bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-2 text-xs font-mono"
                                                     />
                                                 </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Button Text Color</label>
-                                                <div className="flex gap-4 items-center">
-                                                    <input
-                                                        type="color"
-                                                        value={localSettings.buttons?.textColor || '#ffffff'}
-                                                        onChange={(e) => setLocalSettings({
-                                                            ...localSettings,
-                                                            buttons: { ...localSettings.buttons, textColor: e.target.value }
-                                                        })}
-                                                        className="w-12 h-12 rounded-lg cursor-pointer flex-shrink-0"
-                                                    />
-                                                    <input
-                                                        type="text"
-                                                        value={localSettings.buttons?.textColor || '#ffffff'}
-                                                        onChange={(e) => setLocalSettings({
-                                                            ...localSettings,
-                                                            buttons: { ...localSettings.buttons, textColor: e.target.value }
-                                                        })}
-                                                        className="flex-1 bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-3 text-sm font-mono"
-                                                    />
-                                                </div>
+                                        ))}
+                                    </div>
+                                </section>
+
+                                {/* Typography */}
+                                <section>
+                                    <h4 className="font-bold text-sm text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4 border-b border-gray-200 dark:border-zinc-700 pb-2">Typography</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Body Font</label>
+                                            <select
+                                                value={localSettings.theme?.typography?.fontFamily || 'Inter, sans-serif'}
+                                                onChange={(e) => setLocalSettings({
+                                                    ...localSettings,
+                                                    theme: {
+                                                        ...localSettings.theme,
+                                                        typography: { ...(localSettings.theme?.typography || {}), fontFamily: e.target.value }
+                                                    } as any
+                                                })}
+                                                className="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-2.5 text-sm"
+                                            >
+                                                <option value="Inter, sans-serif">Inter</option>
+                                                <option value="Roboto, sans-serif">Roboto</option>
+                                                <option value="Open Sans, sans-serif">Open Sans</option>
+                                                <option value="system-ui, sans-serif">System UI</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Heading Font</label>
+                                            <select
+                                                value={localSettings.theme?.typography?.headingFont || 'Inter, sans-serif'}
+                                                onChange={(e) => setLocalSettings({
+                                                    ...localSettings,
+                                                    theme: {
+                                                        ...localSettings.theme,
+                                                        typography: { ...(localSettings.theme?.typography || {}), headingFont: e.target.value }
+                                                    } as any
+                                                })}
+                                                className="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-2.5 text-sm"
+                                            >
+                                                <option value="Inter, sans-serif">Inter</option>
+                                                <option value="Playfair Display, serif">Playfair Display</option>
+                                                <option value="Montserrat, sans-serif">Montserrat</option>
+                                                <option value="Poppins, sans-serif">Poppins</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Base Size</label>
+                                            <select
+                                                value={localSettings.theme?.typography?.baseFontSize || '16px'}
+                                                onChange={(e) => setLocalSettings({
+                                                    ...localSettings,
+                                                    theme: {
+                                                        ...localSettings.theme,
+                                                        typography: { ...(localSettings.theme?.typography || {}), baseFontSize: e.target.value }
+                                                    } as any
+                                                })}
+                                                className="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-2.5 text-sm"
+                                            >
+                                                <option value="14px">14px (Compact)</option>
+                                                <option value="16px">16px (Default)</option>
+                                                <option value="18px">18px (Large)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Line Height</label>
+                                            <select
+                                                value={localSettings.theme?.typography?.lineHeight || '1.6'}
+                                                onChange={(e) => setLocalSettings({
+                                                    ...localSettings,
+                                                    theme: {
+                                                        ...localSettings.theme,
+                                                        typography: { ...(localSettings.theme?.typography || {}), lineHeight: e.target.value }
+                                                    } as any
+                                                })}
+                                                className="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-2.5 text-sm"
+                                            >
+                                                <option value="1.4">1.4 (Tight)</option>
+                                                <option value="1.6">1.6 (Default)</option>
+                                                <option value="1.8">1.8 (Relaxed)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* Spacing & Layout */}
+                                <section>
+                                    <h4 className="font-bold text-sm text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4 border-b border-gray-200 dark:border-zinc-700 pb-2">Spacing & Layout</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Container Width</label>
+                                            <select
+                                                value={localSettings.theme?.spacing?.containerMaxWidth || '1280px'}
+                                                onChange={(e) => setLocalSettings({
+                                                    ...localSettings,
+                                                    theme: {
+                                                        ...localSettings.theme,
+                                                        spacing: { ...(localSettings.theme?.spacing || {}), containerMaxWidth: e.target.value }
+                                                    } as any
+                                                })}
+                                                className="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-2.5 text-sm"
+                                            >
+                                                <option value="1024px">1024px (Narrow)</option>
+                                                <option value="1280px">1280px (Default)</option>
+                                                <option value="1536px">1536px (Wide)</option>
+                                                <option value="100%">Full Width</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Section Padding</label>
+                                            <select
+                                                value={localSettings.theme?.spacing?.sectionPadding || '4rem'}
+                                                onChange={(e) => setLocalSettings({
+                                                    ...localSettings,
+                                                    theme: {
+                                                        ...localSettings.theme,
+                                                        spacing: { ...(localSettings.theme?.spacing || {}), sectionPadding: e.target.value }
+                                                    } as any
+                                                })}
+                                                className="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-2.5 text-sm"
+                                            >
+                                                <option value="2rem">Small (2rem)</option>
+                                                <option value="4rem">Medium (4rem)</option>
+                                                <option value="6rem">Large (6rem)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Card Padding</label>
+                                            <select
+                                                value={localSettings.theme?.spacing?.cardPadding || '1.5rem'}
+                                                onChange={(e) => setLocalSettings({
+                                                    ...localSettings,
+                                                    theme: {
+                                                        ...localSettings.theme,
+                                                        spacing: { ...(localSettings.theme?.spacing || {}), cardPadding: e.target.value }
+                                                    } as any
+                                                })}
+                                                className="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-2.5 text-sm"
+                                            >
+                                                <option value="1rem">Compact (1rem)</option>
+                                                <option value="1.5rem">Default (1.5rem)</option>
+                                                <option value="2rem">Spacious (2rem)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Element Gap</label>
+                                            <select
+                                                value={localSettings.theme?.spacing?.gap || '1rem'}
+                                                onChange={(e) => setLocalSettings({
+                                                    ...localSettings,
+                                                    theme: {
+                                                        ...localSettings.theme,
+                                                        spacing: { ...(localSettings.theme?.spacing || {}), gap: e.target.value }
+                                                    } as any
+                                                })}
+                                                className="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-2.5 text-sm"
+                                            >
+                                                <option value="0.5rem">Tight (0.5rem)</option>
+                                                <option value="1rem">Default (1rem)</option>
+                                                <option value="1.5rem">Relaxed (1.5rem)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* Button Styling (existing) */}
+                                <section>
+                                    <h4 className="font-bold text-sm text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-4 border-b border-gray-200 dark:border-zinc-700 pb-2">Button Styling</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Background</label>
+                                            <div className="flex gap-2 items-center">
+                                                <input
+                                                    type="color"
+                                                    value={localSettings.buttons?.bgColor || '#2563eb'}
+                                                    onChange={(e) => setLocalSettings({ ...localSettings, buttons: { ...localSettings.buttons, bgColor: e.target.value } })}
+                                                    className="w-10 h-10 rounded-lg cursor-pointer"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={localSettings.buttons?.bgColor || '#2563eb'}
+                                                    onChange={(e) => setLocalSettings({ ...localSettings, buttons: { ...localSettings.buttons, bgColor: e.target.value } })}
+                                                    className="flex-1 bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-2 text-xs font-mono"
+                                                />
                                             </div>
                                         </div>
-                                    </section>
-
-                                    <section className="space-y-4">
-                                        <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300 uppercase tracking-wider">Shape & Radius</h4>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Text Color</label>
+                                            <div className="flex gap-2 items-center">
+                                                <input
+                                                    type="color"
+                                                    value={localSettings.buttons?.textColor || '#ffffff'}
+                                                    onChange={(e) => setLocalSettings({ ...localSettings, buttons: { ...localSettings.buttons, textColor: e.target.value } })}
+                                                    className="w-10 h-10 rounded-lg cursor-pointer"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={localSettings.buttons?.textColor || '#ffffff'}
+                                                    onChange={(e) => setLocalSettings({ ...localSettings, buttons: { ...localSettings.buttons, textColor: e.target.value } })}
+                                                    className="flex-1 bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-2 text-xs font-mono"
+                                                />
+                                            </div>
+                                        </div>
                                         <div>
                                             <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Border Radius</label>
                                             <select
                                                 value={localSettings.buttons?.borderRadius || 'md'}
-                                                onChange={(e) => setLocalSettings({
-                                                    ...localSettings,
-                                                    buttons: { ...localSettings.buttons, borderRadius: e.target.value }
-                                                })}
-                                                className="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-3 text-sm outline-none"
+                                                onChange={(e) => setLocalSettings({ ...localSettings, buttons: { ...localSettings.buttons, borderRadius: e.target.value } })}
+                                                className="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg p-2.5 text-sm"
                                             >
-                                                <option value="none">Sharp (0px)</option>
-                                                <option value="sm">Small (4px)</option>
-                                                <option value="md">Medium (8px)</option>
-                                                <option value="lg">Large (12px)</option>
-                                                <option value="full">Round (999px)</option>
+                                                <option value="none">Sharp</option>
+                                                <option value="sm">Small</option>
+                                                <option value="md">Medium</option>
+                                                <option value="lg">Large</option>
+                                                <option value="full">Round</option>
                                             </select>
                                         </div>
-
-                                        <div className="mt-8 p-6 bg-gray-50 dark:bg-zinc-800/50 rounded-xl">
-                                            <p className="text-xs font-bold text-gray-400 uppercase mb-4">Live Preview</p>
-                                            <button
-                                                style={{
-                                                    backgroundColor: localSettings.buttons?.bgColor,
-                                                    color: localSettings.buttons?.textColor,
-                                                    borderRadius: localSettings.buttons?.borderRadius === 'none' ? '0' :
-                                                        localSettings.buttons?.borderRadius === 'sm' ? '4px' :
-                                                            localSettings.buttons?.borderRadius === 'md' ? '8px' :
-                                                                localSettings.buttons?.borderRadius === 'lg' ? '12px' : '9999px'
-                                                }}
-                                                className="px-6 py-2.5 font-bold text-sm shadow-md transition-all hover:opacity-90 active:scale-95"
-                                            >
-                                                Sample Button
-                                            </button>
-                                        </div>
-                                    </section>
-                                </div>
+                                    </div>
+                                    <div className="mt-6 p-4 bg-gray-50 dark:bg-zinc-800/50 rounded-xl">
+                                        <p className="text-xs font-bold text-gray-400 uppercase mb-3">Preview</p>
+                                        <button
+                                            style={{
+                                                backgroundColor: localSettings.buttons?.bgColor || '#2563eb',
+                                                color: localSettings.buttons?.textColor || '#ffffff',
+                                                borderRadius: localSettings.buttons?.borderRadius === 'none' ? '0' :
+                                                    localSettings.buttons?.borderRadius === 'sm' ? '4px' :
+                                                        localSettings.buttons?.borderRadius === 'md' ? '8px' :
+                                                            localSettings.buttons?.borderRadius === 'lg' ? '12px' : '9999px'
+                                            }}
+                                            className="px-5 py-2 font-bold text-sm shadow-md"
+                                        >
+                                            Sample Button
+                                        </button>
+                                    </div>
+                                </section>
                             </div>
                         </div>
                     </div>

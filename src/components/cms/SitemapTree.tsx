@@ -28,6 +28,7 @@ import {
     EyeOff,
     Lock,
     File,
+    AlertTriangle,
     MoreVertical,
     ChevronRight,
     ChevronDown,
@@ -127,10 +128,10 @@ function SortableItem({ node, depth, onAddChild, onEditSettings, onPickerAction,
 
                 <div className="mr-3">
                     <div className={`w-2 h-2 rounded-full ${node.status === 'published'
-                            ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]'
-                            : node.status === 'archived'
-                                ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'
-                                : 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.4)]'
+                        ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]'
+                        : node.status === 'archived'
+                            ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'
+                            : 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.4)]'
                         }`} />
                 </div>
 
@@ -141,7 +142,8 @@ function SortableItem({ node, depth, onAddChild, onEditSettings, onPickerAction,
 
                 {/* Icon */}
                 <div className={`mr-2 ${isActive ? 'text-blue-500' : 'text-gray-400'}`}>
-                    {node.slug === '/' ? <Folder size={16} /> : <FileText size={16} />}
+                    {node.slug === '/404' ? <AlertTriangle size={16} className="text-amber-500" /> :
+                        node.slug === '/' ? <Folder size={16} /> : <FileText size={16} />}
                 </div>
 
                 {/* Title */}

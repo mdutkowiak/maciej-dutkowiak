@@ -175,6 +175,31 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             if (error) throw error;
 
             if (data) {
+                // Auto-create /404 page if it doesn't exist
+                const has404 = data.some((p: any) => p.slug === '/404');
+                if (!has404) {
+                    const { error: insertError } = await supabase.from('sitemap').insert({
+                        id: crypto.randomUUID(),
+                        parent_id: null,
+                        title: '404 Error Page',
+                        slug: '/404',
+                        status: 'published',
+                        template_id: 'blank',
+                        locked: true, // Prevent deletion
+                        is_deleted: false,
+                        last_modified: new Date().toISOString()
+                    });
+                    if (!insertError) {
+                        // Refetch with new 404 page
+                        const { data: refreshedData } = await supabase.from('sitemap').select('*').order('title');
+                        if (refreshedData) {
+                            const tree = buildTree(refreshedData);
+                            set({ sitemap: tree });
+                            return;
+                        }
+                    }
+                }
+
                 const tree = buildTree(data);
                 set({ sitemap: tree });
             }
@@ -548,10 +573,16 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             custom_code: customCode
         });
 
-        await supabase.from('sitemap').update({
-            last_modified: new Date().toISOString(),
-            status: 'draft'
-        }).eq('id', pageId);
+        // Check current status - don't change archived pages
+        const { data: currentPage } = await supabase.from('sitemap').select('status').eq('id', pageId).single();
+        const updateData: Record<string, any> = { last_modified: new Date().toISOString() };
+
+        // Only set to 'draft' if page is not archived (unpublished)
+        if (currentPage?.status !== 'archived') {
+            updateData.status = 'draft';
+        }
+
+        await supabase.from('sitemap').update(updateData).eq('id', pageId);
 
         // Refresh sitemap in store to reflect last_modified and any other changes
         await get().initializeSite();

@@ -40,16 +40,45 @@ export default function Home() {
     );
   }
 
+  // Find custom 404 page
+  const custom404Node = findNodeBySlug(sitemap, '/404');
+
+  // Load custom 404 content if needed
+  useEffect(() => {
+    if (custom404Node && !pageComponents[custom404Node.id]) {
+      loadPageContent(custom404Node.id);
+    }
+  }, [custom404Node, pageComponents, loadPageContent]);
+
   if (!homeNode || homeNode.status === 'archived') {
+    const custom404Components = custom404Node ? pageComponents[custom404Node.id] || [] : [];
+    const custom404Code = custom404Node ? pageCustomCode[custom404Node.id] || { css: '', js: '' } : { css: '', js: '' };
+
+    // If we have custom 404 content, render it
+    if (custom404Components.length > 0) {
+      return (
+        <div className="min-h-screen bg-white dark:bg-black font-sans text-gray-900 dark:text-gray-100">
+          <style dangerouslySetInnerHTML={{ __html: custom404Code.css }} />
+          <main>
+            {custom404Components.map((component: any) => (
+              <BlockRenderer key={component.id} component={component} isEditable={false} />
+            ))}
+          </main>
+        </div>
+      );
+    }
+
+    // Fallback
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-10 text-center bg-white dark:bg-black">
-        <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
-          {!homeNode ? 'Home page not found' : 'Under Construction'}
-        </h1>
+        <h1 className="text-6xl font-bold mb-4 text-gray-900 dark:text-white">404</h1>
+        <h2 className="text-xl font-semibold mb-6 text-gray-500">
+          {!homeNode ? 'Home page not found' : 'Page not found'}
+        </h2>
         <p className="text-gray-500 mb-6">
           {!homeNode
             ? "Please create a page with slug '/' in the admin panel."
-            : "This page is currently unpublished. Check back soon!"}
+            : "The page you are looking for doesn't exist or has been moved."}
         </p>
         <a href="/admin" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
           Go to Admin Panel

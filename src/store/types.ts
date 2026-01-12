@@ -121,6 +121,30 @@ export interface SiteSettings {
     textColor: string;
     borderRadius: string;
   };
+  theme?: {
+    colors: {
+      primary: string;
+      secondary: string;
+      accent: string;
+      background: string;
+      surface: string;
+      textPrimary: string;
+      textSecondary: string;
+      border: string;
+    };
+    typography: {
+      fontFamily: string;
+      headingFont: string;
+      baseFontSize: string;
+      lineHeight: string;
+    };
+    spacing: {
+      containerMaxWidth: string;
+      sectionPadding: string;
+      cardPadding: string;
+      gap: string;
+    };
+  };
 }
 
 export interface MediaFolder {

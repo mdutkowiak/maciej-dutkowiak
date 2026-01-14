@@ -32,14 +32,6 @@ export default function Home() {
     }
   }, [homeNode, pageComponents, loadPageContent]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
-      </div>
-    );
-  }
-
   // Find custom 404 page
   const custom404Node = findNodeBySlug(sitemap, '/404');
 
@@ -49,6 +41,14 @@ export default function Home() {
       loadPageContent(custom404Node.id);
     }
   }, [custom404Node, pageComponents, loadPageContent]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+      </div>
+    );
+  }
 
   if (!homeNode || homeNode.status === 'archived') {
     const custom404Components = custom404Node ? pageComponents[custom404Node.id] || [] : [];

@@ -18,6 +18,7 @@ export default function PageSettingsModal({ isOpen, onClose, node }: PageSetting
     const [slug, setSlug] = useState(node.slug);
     const [seoTitle, setSeoTitle] = useState('');
     const [seoDesc, setSeoDesc] = useState('');
+    const [keywords, setKeywords] = useState('');
 
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export default function PageSettingsModal({ isOpen, onClose, node }: PageSetting
             const metadata = (node as any).seo_metadata || {};
             setSeoTitle(metadata.title || '');
             setSeoDesc(metadata.description || '');
+            setKeywords((metadata.keywords || []).join(', '));
             setError(null);
         }
     }, [isOpen, node]);
@@ -47,7 +49,8 @@ export default function PageSettingsModal({ isOpen, onClose, node }: PageSetting
             title,
             slug: slug.startsWith('/') ? slug : `/${slug}`,
             seoTitle,
-            seoDesc
+            seoDesc,
+            keywords: keywords.split(',').map(k => k.trim()).filter(k => k)
         });
 
         setIsSaving(false);
@@ -137,6 +140,16 @@ export default function PageSettingsModal({ isOpen, onClose, node }: PageSetting
                                         onChange={(e) => setSeoDesc(e.target.value)}
                                     />
                                     <p className="text-[10px] text-gray-400 mt-1 text-right">{seoDesc.length} / 160 characters</p>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Target Keywords (comma separated)</label>
+                                    <input
+                                        type="text"
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-sm"
+                                        placeholder="e.g. cms, react, nextjs"
+                                        value={keywords}
+                                        onChange={(e) => setKeywords(e.target.value)}
+                                    />
                                 </div>
                             </div>
                         </div>

@@ -793,16 +793,30 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             const h1Count = headingHierarchy.filter(h => h.toLowerCase() === 'h1').length;
             if (h1Count !== 1) missingTags.push('h1-unique');
 
-            // Keyword Density (Mock logic based on seo_metadata.keywords)
+            // Keyword Density Calculation
             const keywordDensity: Record<string, number> = {};
+            const fullText = pageText.join(' ').toLowerCase();
             const targetKeywords = seo.keywords || [];
-            if (targetKeywords.length > 0) {
-                const combinedText = pageText.join(' ').toLowerCase();
-                targetKeywords.forEach((kw: string) => {
-                    const regex = new RegExp(`\\b${kw.toLowerCase()}\\b`, 'g');
-                    const count = (combinedText.match(regex) || []).length;
-                    keywordDensity[kw] = count;
+
+            if (targetKeywords.length > 0 && totalWordCount > 0) {
+                targetKeywords.forEach((keyword: string) => {
+                    const cleanKeyword = keyword.trim().toLowerCase();
+                    if (!cleanKeyword) return;
+
+                    // Escape regex special characters
+                    const escaped = cleanKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`\\b${escaped}\\b`, 'g');
+                    const matches = fullText.match(regex);
+                    const count = matches ? matches.length : 0;
+
+                    // Simple density: (count * keyword_word_count / total_words) * 100
+                    const keywordWordCount = cleanKeyword.split(/\s+/).length;
+                    const density = (count * keywordWordCount / totalWordCount) * 100;
+
+                    keywordDensity[cleanKeyword] = parseFloat(density.toFixed(2));
                 });
+            } else if (targetKeywords.length > 0) {
+                targetKeywords.forEach((k: string) => keywordDensity[k.trim().toLowerCase()] = 0);
             }
 
             // Reading Time (Avg 200 words per minute)

@@ -63,6 +63,7 @@ export default function SEOReportTable({ reports }: SEOReportTableProps) {
                             <th className="px-6 py-3 text-center">Alt Tags</th>
                             <th className="px-6 py-3 text-center">Read Time</th>
                             <th className="px-6 py-3 text-center">Word Count</th>
+                            <th className="px-6 py-3">Keywords</th>
                             <th className="px-6 py-3 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -128,6 +129,27 @@ export default function SEOReportTable({ reports }: SEOReportTableProps) {
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <span className="text-gray-600 dark:text-gray-300 font-medium">{report.wordCount}</span>
+                                </td>
+                                <td className="px-6 py-4">
+                                    {report.keywordDensity && Object.keys(report.keywordDensity).length > 0 ? (
+                                        <div className="flex flex-wrap gap-1">
+                                            {Object.entries(report.keywordDensity).map(([kw, density]) => {
+                                                let colorClass = "bg-gray-100 text-gray-600 border-gray-200 dark:bg-zinc-800 dark:text-gray-400 dark:border-zinc-700"; // default
+                                                if (density === 0) colorClass = "bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/50";
+                                                else if (density >= 0.5 && density <= 2.5) colorClass = "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/50";
+                                                else colorClass = "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/50";
+
+                                                return (
+                                                    <div key={kw} className={`px-2 py-0.5 rounded text-[10px] border font-medium ${colorClass} flex items-center gap-1`}>
+                                                        <span>{kw}</span>
+                                                        <span className="opacity-75">{density}%</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <span className="text-gray-400 text-xs italic">No keywords</span>
+                                    )}
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <button

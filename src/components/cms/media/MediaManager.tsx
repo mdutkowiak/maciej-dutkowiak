@@ -46,11 +46,12 @@ export default function MediaManager({ onSelect, onClose, embedded = false }: Me
         try {
             // Fetch Folders
             if (!showRecycleBin) {
-                const { data: folderData } = await supabase
+                const { data: folderData, error: folderError } = await supabase
                     .from('media_folders')
                     .select('*')
                     .eq('parent_id', currentFolderId || null);
 
+                if (folderError) throw folderError;
                 if (folderData) setFolders(folderData.map((f: any) => ({
                     id: f.id,
                     name: f.name,
@@ -69,8 +70,9 @@ export default function MediaManager({ onSelect, onClose, embedded = false }: Me
                 query = query.eq('folder_id', currentFolderId || null);
             }
 
-            const { data: assetData } = await query;
+            const { data: assetData, error: assetError } = await query;
 
+            if (assetError) throw assetError;
             if (assetData) setAssets(assetData.map((a: any) => ({
                 id: a.id,
                 name: a.name,
@@ -83,8 +85,13 @@ export default function MediaManager({ onSelect, onClose, embedded = false }: Me
                 metadata: a.metadata || {}
             })));
 
-        } catch (e) {
+        } catch (e: any) {
             console.error('Error fetching media:', e);
+            // Don't alert on fetch to avoid spamming, but log it.
+            // If it's a missing table, the user will see empty state.
+            if (e.message?.includes('relation "media_folders" does not exist') || e.message?.includes('relation "assets" does not exist')) {
+                console.warn('Media tables missing. Please run the SQL schema.');
+            }
         }
         setIsLoading(false);
     };
@@ -94,13 +101,15 @@ export default function MediaManager({ onSelect, onClose, embedded = false }: Me
         if (!name) return;
 
         try {
-            await supabase.from('media_folders').insert({
+            const { error } = await supabase.from('media_folders').insert({
                 name,
                 parent_id: currentFolderId
             });
+            if (error) throw error;
             fetchData();
-        } catch (e) {
+        } catch (e: any) {
             console.error('Failed to create folder:', e);
+            alert(`Failed to create folder: ${e.message}`);
         }
     };
 
@@ -118,7 +127,7 @@ export default function MediaManager({ onSelect, onClose, embedded = false }: Me
             const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(fileName);
 
             // Create asset record
-            await supabase.from('assets').insert({
+            const { error: dbError } = await supabase.from('assets').insert({
                 name: file.name,
                 file_url: publicUrl,
                 file_type: file.type,
@@ -126,12 +135,16 @@ export default function MediaManager({ onSelect, onClose, embedded = false }: Me
                 folder_id: currentFolderId
             });
 
+            if (dbError) throw dbError;
+
             await fetchData();
         } catch (e: any) {
             console.error('Upload failed:', e);
             const msg = e.message || 'Unknown error';
             if (msg.toLowerCase().includes('bucket')) {
                 alert(`Upload failed: Storage bucket 'media' not found. Please create it in Supabase Storage.`);
+            } else if (msg.includes('relation "assets" does not exist')) {
+                alert(`Upload success but DB failed: Table 'assets' missing. Run 'supabase_media_schema.sql'.`);
             } else {
                 alert(`Upload failed: ${msg}. Check if 'assets' table exists and RLS policies are set.`);
             }

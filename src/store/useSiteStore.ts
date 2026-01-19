@@ -658,29 +658,67 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
     },
 
     fetchAllSeoReports: async () => {
-        const { data, error } = await supabase.from('seo_audits').select('*, sitemap(slug)');
-        if (error) {
-            console.error('Error fetching SEO reports:', error);
-            return;
-        }
+        try {
+            // Fetch all published pages from sitemap
+            const { data: pages, error: sitemapError } = await supabase
+                .from('sitemap')
+                .select('id, slug, title')
+                .in('status', ['published', 'draft']); // checking published and draft
 
-        const reports: Record<string, SEOPageReport> = {};
-        data?.forEach((r: any) => {
-            reports[r.page_id] = {
-                pageId: r.page_id,
-                path: r.sitemap?.slug || '/',
-                slug: r.sitemap?.slug || '/',
-                seoScore: r.score as any,
-                missingTags: r.missing_tags || [],
-                brokenLinks: r.broken_links_count || 0,
-                missingAltCount: r.missing_alt_count || 0,
-                securityIssues: r.security_issues_count || 0,
-                wordCount: r.word_count || 0,
-                readingTime: r.reading_time || 0,
-                keywordDensity: r.keyword_density || {}
-            };
-        });
-        set({ seoReports: reports });
+            if (sitemapError) throw sitemapError;
+
+            // Fetch existing audits
+            const { data: audits, error: auditError } = await supabase
+                .from('seo_audits')
+                .select('*');
+
+            if (auditError) throw auditError;
+
+            const reports: Record<string, SEOPageReport> = {};
+
+            // Initialize all pages with default/empty report
+            pages?.forEach((page: any) => {
+                reports[page.id] = {
+                    pageId: page.id,
+                    path: page.slug,
+                    slug: page.slug,
+                    seoScore: 'critical',
+                    missingTags: [],
+                    brokenLinks: 0,
+                    missingAltCount: 0,
+                    securityIssues: 0,
+                    wordCount: 0,
+                    readingTime: 0,
+                    keywordDensity: {}
+                };
+            });
+
+            // Override with actual audit data where it exists
+            audits?.forEach((r: any) => {
+                if (reports[r.page_id]) {
+                    const scoreNum = Number(r.score) || 0;
+                    let status: 'good' | 'warning' | 'critical' = 'critical';
+                    if (scoreNum >= 90) status = 'good';
+                    else if (scoreNum >= 60) status = 'warning';
+
+                    reports[r.page_id] = {
+                        ...reports[r.page_id],
+                        seoScore: status,
+                        missingTags: r.missing_tags || [],
+                        brokenLinks: r.broken_links_count || 0,
+                        missingAltCount: r.missing_alt_count || 0,
+                        securityIssues: r.security_issues_count || 0,
+                        wordCount: r.word_count || 0,
+                        readingTime: r.reading_time || 0,
+                        keywordDensity: r.keyword_density || {}
+                    };
+                }
+            });
+
+            set({ seoReports: reports });
+        } catch (e) {
+            console.error('Error fetching SEO reports:', e);
+        }
     },
 
     runSeoAudit: async (pageId: string) => {

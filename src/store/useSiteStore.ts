@@ -61,7 +61,7 @@ interface SiteStore {
     copyPage: (id: string) => void;
     pastePage: (parentId: string | null) => Promise<void>;
     movePage: (id: string, newParentId: string | null) => Promise<void>;
-    updatePageProperties: (id: string, properties: { title?: string; slug?: string; seoTitle?: string; seoDesc?: string; keywords?: string[] }) => Promise<{ success: boolean; error?: string }>;
+    updatePageProperties: (id: string, properties: { title?: string; slug?: string; seoTitle?: string; seoDesc?: string; keywords?: string[]; ogImage?: string }) => Promise<{ success: boolean; error?: string }>;
     updatePageData: (id: string, data: Record<string, any>) => Promise<void>;
 
     // Dashboard Stats
@@ -444,12 +444,13 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             };
             if (props.title) updateData.title = props.title;
             if (props.slug) updateData.slug = props.slug;
-            if (props.seoTitle || props.seoDesc || props.keywords) {
+            if (props.seoTitle || props.seoDesc || props.keywords || props.ogImage) {
                 updateData.seo_metadata = {
                     ...(current?.seo_metadata || {}),
                     title: props.seoTitle ?? current?.seo_metadata?.title,
                     description: props.seoDesc ?? current?.seo_metadata?.description,
-                    keywords: props.keywords ?? current?.seo_metadata?.keywords
+                    keywords: props.keywords ?? current?.seo_metadata?.keywords,
+                    ogImage: props.ogImage ?? current?.seo_metadata?.ogImage
                 };
             }
 

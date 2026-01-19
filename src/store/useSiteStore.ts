@@ -175,9 +175,11 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
             if (error) throw error;
 
             if (data) {
-                // Auto-create /404 page if it doesn't exist
-                const has404 = data.some((p: any) => p.slug === '/404');
-                if (!has404) {
+                // Manage /404 page: Create if missing, deduplicate if multiple
+                const found404s = data.filter((p: any) => p.slug === '/404');
+
+                if (found404s.length === 0) {
+                    // Create if missing
                     const { error: insertError } = await supabase.from('sitemap').insert({
                         id: crypto.randomUUID(),
                         parent_id: null,
@@ -189,15 +191,26 @@ export const useSiteStore = create<SiteStore>((set, get) => ({
                         is_deleted: false,
                         last_modified: new Date().toISOString()
                     });
+
                     if (!insertError) {
-                        // Refetch with new 404 page
-                        const { data: refreshedData } = await supabase.from('sitemap').select('*').order('title');
-                        if (refreshedData) {
-                            const tree = buildTree(refreshedData);
-                            set({ sitemap: tree });
+                        // Refetch to get the new page
+                        const { data: refreshed } = await supabase.from('sitemap').select('*').order('title');
+                        if (refreshed) {
+                            set({ sitemap: buildTree(refreshed) });
                             return;
                         }
                     }
+                } else if (found404s.length > 1) {
+                    // Deduplicate: Keep the first one, delete others
+                    const [keep, ...remove] = found404s;
+                    const removeIds = remove.map((p: any) => p.id);
+
+                    await supabase.from('sitemap').delete().in('id', removeIds);
+
+                    // Update local data to reflect removal
+                    const cleanedData = data.filter((p: any) => !removeIds.includes(p.id));
+                    set({ sitemap: buildTree(cleanedData) });
+                    return;
                 }
 
                 const tree = buildTree(data);

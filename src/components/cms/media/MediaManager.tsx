@@ -15,7 +15,8 @@ import {
     List,
     MoreVertical,
     ArrowLeft,
-    Inbox
+    Inbox,
+    AlertTriangle
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { MediaFolder, Asset } from '@/store/types';
@@ -37,12 +38,20 @@ export default function MediaManager({ onSelect, onClose, embedded = false }: Me
     const [searchQuery, setSearchQuery] = useState('');
     const [showRecycleBin, setShowRecycleBin] = useState(false);
 
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
     useEffect(() => {
-        fetchData();
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        if (!url || url.includes('placeholder')) {
+            setErrorMsg('Configuration Error: NEXT_PUBLIC_SUPABASE_URL is missing or using placeholder. Please set .env variables.');
+        } else {
+            fetchData();
+        }
     }, [currentFolderId, showRecycleBin]);
 
     const fetchData = async () => {
         setIsLoading(true);
+        setErrorMsg(null);
         try {
             // Fetch Folders
             if (!showRecycleBin) {
@@ -87,10 +96,10 @@ export default function MediaManager({ onSelect, onClose, embedded = false }: Me
 
         } catch (e: any) {
             console.error('Error fetching media:', e);
-            // Don't alert on fetch to avoid spamming, but log it.
-            // If it's a missing table, the user will see empty state.
             if (e.message?.includes('relation "media_folders" does not exist') || e.message?.includes('relation "assets" does not exist')) {
-                console.warn('Media tables missing. Please run the SQL schema.');
+                setErrorMsg("Database tables missing. Please run 'supabase_media_schema.sql' in Supabase SQL Editor.");
+            } else {
+                setErrorMsg(`Fetch Error: ${e.message || 'Unknown error'}`);
             }
         }
         setIsLoading(false);
@@ -302,7 +311,21 @@ export default function MediaManager({ onSelect, onClose, embedded = false }: Me
 
                     {/* Content Area */}
                     <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 dark:bg-zinc-950/50">
-                        {isLoading ? (
+                        {errorMsg ? (
+                            <div className="flex flex-col h-full items-center justify-center text-center p-8">
+                                <div className="bg-red-50 dark:bg-red-900/10 p-4 rounded-full mb-4">
+                                    <AlertTriangle className="text-red-500" size={32} />
+                                </div>
+                                <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2">Connection Error</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-300 max-w-md mb-6">{errorMsg}</p>
+                                <button
+                                    onClick={fetchData}
+                                    className="px-4 py-2 bg-white dark:bg-zinc-800 border border-gray-300 dark:border-zinc-700 rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-zinc-700 shadow-sm"
+                                >
+                                    Retry Connection
+                                </button>
+                            </div>
+                        ) : isLoading ? (
                             <div className="flex h-full items-center justify-center">
                                 <Loader2 className="animate-spin text-blue-500" size={32} />
                             </div>
